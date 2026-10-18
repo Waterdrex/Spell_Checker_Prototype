@@ -1,0 +1,1285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spell Checker Using Binary Search Tree (BST) | DSA Project</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              200: '#c7d2fe',
+              300: '#a5b4fc',
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              800: '#3730a3',
+              900: '#312e81',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+
+    .misspelled-highlight {
+      background-color: #fee2e2;
+      color: #b91c1c;
+      border-bottom: 2px dashed #ef4444;
+      border-radius: 3px;
+      padding: 1px 4px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.15s ease-in-out;
+    }
+    .misspelled-highlight:hover {
+      background-color: #fca5a5;
+      color: #7f1d1d;
+    }
+
+    .correct-highlight {
+      background-color: #dcfce7;
+      color: #15803d;
+      border-radius: 3px;
+      padding: 1px 3px;
+      transition: all 0.15s ease-in-out;
+    }
+    .correct-highlight:hover {
+      background-color: #bbf7d0;
+    }
+
+    /* Tree SVG styling */
+    .tree-node circle {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .tree-node:hover circle {
+      fill: #4f46e5;
+      filter: drop-shadow(0 4px 6px rgba(79, 70, 229, 0.4));
+    }
+    .tree-node text {
+      pointer-events: none;
+      font-family: 'JetBrains Mono', monospace;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col font-sans antialiased selection:bg-brand-500 selection:text-white">
+
+  <!-- Header -->
+  <header class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white border-b border-indigo-900/40 shadow-lg sticky top-0 z-40 backdrop-blur">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center space-x-3">
+        <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-md shadow-indigo-500/20 text-white font-mono font-bold text-lg">
+          BST
+        </div>
+        <div>
+          <h1 class="text-lg sm:text-xl font-bold tracking-tight text-white flex items-center gap-2">
+            Spell Checker Using Binary Search Tree
+            <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-500/30 text-indigo-200 border border-indigo-400/30 font-medium">DSA College Project</span>
+          </h1>
+          <p class="text-xs text-indigo-200/80">Efficient dictionary lookup, spell diagnosis & edit-distance suggestions</p>
+        </div>
+      </div>
+
+      <!-- Quick Metrics badges -->
+      <div class="flex items-center space-x-3 text-xs font-mono">
+        <div class="px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/80 flex items-center space-x-2">
+          <span class="text-slate-400">Time Complexity:</span>
+          <span class="text-emerald-400 font-semibold">O(h)</span>
+        </div>
+        <div class="px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/80 flex items-center space-x-2">
+          <span class="text-slate-400">Dictionary:</span>
+          <span id="header-dict-count" class="text-indigo-300 font-semibold">Loading...</span>
+        </div>
+        <a href="#visualizer-section" class="hidden md:inline-flex items-center px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition font-sans text-xs font-medium shadow-sm">
+          <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"></path></svg>
+          View Tree Graph
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Metric Overview Bar -->
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 w-full">
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">BST Words Count</p>
+          <h3 id="stat-tree-size" class="text-2xl font-bold text-slate-800 mt-1">0</h3>
+          <p class="text-[11px] text-slate-400 mt-0.5">Total unique stored keys</p>
+        </div>
+        <div class="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-mono text-base font-bold">
+          N
+        </div>
+      </div>
+
+      <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Actual Tree Height</p>
+          <h3 id="stat-tree-height" class="text-2xl font-bold text-indigo-600 mt-1">0</h3>
+          <p id="stat-tree-ideal" class="text-[11px] text-slate-400 mt-0.5">Ideal balanced: ~11 levels</p>
+        </div>
+        <div class="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-mono text-base font-bold">
+          h
+        </div>
+      </div>
+
+      <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Words Checked</p>
+          <h3 id="stat-words-checked" class="text-2xl font-bold text-slate-800 mt-1">0</h3>
+          <p id="stat-unique-words" class="text-[11px] text-slate-400 mt-0.5">0 unique words parsed</p>
+        </div>
+        <div class="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-mono text-base font-bold">
+          W
+        </div>
+      </div>
+
+      <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Misspelled Words</p>
+          <h3 id="stat-misspelled-count" class="text-2xl font-bold text-rose-600 mt-1">0</h3>
+          <p id="stat-accuracy" class="text-[11px] text-slate-400 mt-0.5">Awaiting check</p>
+        </div>
+        <div class="w-10 h-10 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center font-mono text-base font-bold">
+          !
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Content Area -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full flex-1">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- Left 7 cols: Text Input & Spell Checking View -->
+      <div class="lg:col-span-7 space-y-6">
+
+        <!-- Editor Card -->
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden flex flex-col">
+          <div class="px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2 bg-slate-50/50">
+            <div class="flex items-center space-x-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block"></span>
+              <h2 class="font-semibold text-slate-800 text-sm">Text Input & Analysis Area</h2>
+            </div>
+            <div class="flex items-center space-x-2">
+              <button id="btn-sample-1" class="text-xs px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 transition shadow-xs font-medium">
+                Sample 1 (Errors)
+              </button>
+              <button id="btn-sample-2" class="text-xs px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 transition shadow-xs font-medium">
+                Sample 2 (Tech)
+              </button>
+              <button id="btn-clear" class="text-xs px-2.5 py-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition font-medium">
+                Clear
+              </button>
+            </div>
+          </div>
+
+          <div class="p-5 flex-1 flex flex-col">
+            <label for="input-text" class="sr-only">Type or paste text to spell check</label>
+            <textarea
+              id="input-text"
+              rows="6"
+              class="w-full text-slate-800 placeholder-slate-400 border border-slate-200 rounded-xl p-3.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition font-sans text-sm leading-relaxed resize-y"
+              placeholder="Type or paste any sentence, paragraph, or essay here to check spelling using the Binary Search Tree dictionary..."
+            ></textarea>
+
+            <div class="mt-4 flex flex-wrap items-center justify-between gap-3 pt-2">
+              <div class="flex items-center space-x-4 text-xs text-slate-500">
+                <span>Characters: <strong id="char-count" class="text-slate-700">0</strong></span>
+                <span>Words: <strong id="input-word-count" class="text-slate-700">0</strong></span>
+              </div>
+
+              <div class="flex items-center space-x-3">
+                <button
+                  id="btn-check-spelling"
+                  class="inline-flex items-center px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-medium text-sm transition shadow-md shadow-indigo-600/20 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                >
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                  Check Spelling
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Highlighted Results Display Card -->
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+          <div class="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+            <div class="flex items-center space-x-2">
+              <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+              <h2 class="font-semibold text-slate-800 text-sm">Visual Verification & Diagnosis</h2>
+            </div>
+            <div class="flex items-center space-x-3 text-xs">
+              <span class="inline-flex items-center text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 font-medium">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span>Correct (Found in BST)
+              </span>
+              <span class="inline-flex items-center text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200 font-medium">
+                <span class="w-1.5 h-1.5 rounded-full bg-rose-500 mr-1.5"></span>Misspelled (Click to inspect)
+              </span>
+            </div>
+          </div>
+
+          <div class="p-5 min-h-[140px] max-h-[300px] overflow-y-auto">
+            <div id="highlighted-output" class="text-sm leading-relaxed text-slate-700 whitespace-pre-wrap">
+              <span class="text-slate-400 italic">Click "Check Spelling" above or type text to see highlighted results here. Misspelled words will be underlined in red and correct words will be verified against the Binary Search Tree.</span>
+            </div>
+          </div>
+
+          <div class="px-5 py-2.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+            <span id="diagnostic-message">Ready for spell checking</span>
+            <span class="font-mono text-[11px] text-slate-400">BST Search: O(log n) avg</span>
+          </div>
+        </div>
+
+        <!-- BST Visualization Section -->
+        <div id="visualizer-section" class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+          <div class="px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 bg-slate-50/50">
+            <div>
+              <h2 class="font-semibold text-slate-800 text-sm flex items-center gap-2">
+                <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11"></path></svg>
+                BST Architecture Visualizer (First 4 Levels)
+              </h2>
+              <p class="text-xs text-slate-500 mt-0.5">Inspect root, subtrees, and binary search ordering (<span class="font-mono text-indigo-600">Left &lt; Root &lt; Right</span>)</p>
+            </div>
+            <div class="flex items-center space-x-2">
+              <button id="btn-rebalance" class="text-xs px-3 py-1.5 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 transition font-medium flex items-center">
+                <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                Rebalance Tree (AVL Style)
+              </button>
+            </div>
+          </div>
+
+          <div class="p-4 bg-slate-900 overflow-x-auto relative">
+            <div class="absolute top-3 left-4 text-[11px] font-mono text-slate-400 bg-slate-800/80 px-2 py-1 rounded border border-slate-700">
+              Interactive Canvas • Top Levels
+            </div>
+            <svg id="bst-svg" class="w-full min-w-[620px] h-[260px]" viewBox="0 0 800 280" preserveAspectRatio="xMidYMid meet">
+              <!-- Rendered via JS -->
+            </svg>
+          </div>
+
+          <div class="px-5 py-3 bg-slate-50 border-t border-slate-100 flex flex-wrap items-center justify-between text-xs text-slate-600 gap-2">
+            <div class="flex items-center space-x-4">
+              <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-indigo-500 mr-1.5"></span> Root / Node</span>
+              <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 mr-1.5"></span> Left Child (&lt;)</span>
+              <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-purple-500 mr-1.5"></span> Right Child (&gt;)</span>
+            </div>
+            <span class="text-slate-400 italic">Nodes at level &gt; 4 pruned for clean display</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right 5 cols: Misspelled Suggestions & Dictionary Management -->
+      <div class="lg:col-span-5 space-y-6">
+
+        <!-- Misspelled Words & Suggestions Side Panel -->
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden flex flex-col">
+          <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+            <div class="flex items-center space-x-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span>
+              <h2 class="font-semibold text-slate-800 text-sm">Misspelled Words & Suggestions</h2>
+            </div>
+            <span id="badge-errors-count" class="text-xs px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 font-semibold">
+              0 Errors
+            </span>
+          </div>
+
+          <div id="suggestions-panel" class="p-5 max-h-[380px] overflow-y-auto space-y-4">
+            <!-- Empty state -->
+            <div id="suggestions-empty" class="text-center py-10 text-slate-400">
+              <svg class="w-12 h-12 mx-auto text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              <p class="text-sm font-medium text-slate-600">No spelling mistakes detected!</p>
+              <p class="text-xs text-slate-400 mt-1">Run a spell check to view misspelled words and up to 5 smart suggestions for each word.</p>
+            </div>
+
+            <!-- List rendered dynamically -->
+            <div id="suggestions-list" class="space-y-3 hidden">
+            </div>
+          </div>
+
+          <div class="p-3 bg-slate-50 border-t border-slate-100 text-[11px] text-slate-500 text-center">
+            Click any suggestion chip to automatically replace the misspelled word in your text.
+          </div>
+        </div>
+
+        <!-- Dictionary Operations: Add / Delete Custom Word -->
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+          <div class="px-5 py-4 border-b border-slate-100 bg-slate-50/50">
+            <h2 class="font-semibold text-slate-800 text-sm flex items-center gap-2">
+              <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+              BST Dictionary Operations
+            </h2>
+            <p class="text-xs text-slate-500 mt-0.5">Directly test dynamic BST node insertion and deletion algorithms</p>
+          </div>
+
+          <div class="p-5 space-y-4">
+            <!-- Add word form -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Add Custom Word to BST</label>
+              <div class="flex gap-2">
+                <input
+                  type="text"
+                  id="input-add-word"
+                  placeholder="e.g., algorithm, kubernetes"
+                  class="flex-1 text-sm border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                />
+                <button
+                  id="btn-add-word"
+                  class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl text-xs font-semibold transition shadow-xs flex items-center"
+                >
+                  <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                  Insert
+                </button>
+              </div>
+            </div>
+
+            <!-- Delete word form -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Delete Word from BST</label>
+              <div class="flex gap-2">
+                <input
+                  type="text"
+                  id="input-delete-word"
+                  placeholder="e.g., banana, test"
+                  class="flex-1 text-sm border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"
+                />
+                <button
+                  id="btn-delete-word"
+                  class="px-4 py-2 bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white rounded-xl text-xs font-semibold transition shadow-xs flex items-center"
+                >
+                  <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                  Delete
+                </button>
+              </div>
+            </div>
+
+            <!-- Lookup & Path Trace -->
+            <div class="pt-2 border-t border-slate-100">
+              <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Trace BST Search Path (Live Demo)</label>
+              <div class="flex gap-2">
+                <input
+                  type="text"
+                  id="input-search-word"
+                  placeholder="Test lookup e.g. computer"
+                  class="flex-1 text-sm border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                />
+                <button
+                  id="btn-search-word"
+                  class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold transition shadow-xs flex items-center"
+                >
+                  Trace
+                </button>
+              </div>
+
+              <!-- Search Trace Result Output -->
+              <div id="search-trace-box" class="mt-2.5 p-3 rounded-xl bg-slate-900 text-slate-200 font-mono text-xs hidden">
+                <div class="text-[11px] text-indigo-400 mb-1 flex items-center justify-between">
+                  <span>BST Traversal Steps</span>
+                  <span id="search-trace-comparisons" class="text-emerald-400 font-bold"></span>
+                </div>
+                <div id="search-trace-steps" class="space-y-1 text-slate-300 break-words leading-relaxed"></div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Notification Toast Box -->
+          <div id="op-notification" class="mx-5 mb-4 p-2.5 rounded-lg text-xs font-medium hidden"></div>
+        </div>
+
+        <!-- DSA Project Info Card -->
+        <div class="bg-gradient-to-br from-indigo-900 to-slate-900 text-white rounded-2xl p-5 shadow-sm border border-indigo-800/40">
+          <div class="flex items-center space-x-2 text-indigo-300 text-xs font-semibold tracking-wider uppercase mb-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            DSA Technical Highlights
+          </div>
+          <ul class="text-xs text-indigo-100/90 space-y-2 leading-relaxed">
+            <li class="flex items-start">
+              <span class="text-indigo-400 mr-2 font-bold">•</span>
+              <span><strong>BST Dictionary Storage:</strong> Inorder traversal yields lexicographically sorted words; search, insertion, and deletion operate in O(h) time.</span>
+            </li>
+            <li class="flex items-start">
+              <span class="text-indigo-400 mr-2 font-bold">•</span>
+              <span><strong>Smart Suggestions:</strong> Powered by Levenshtein distance metric (insertions, deletions, substitutions) bounded by edit distance ≤ 2.</span>
+            </li>
+            <li class="flex items-start">
+              <span class="text-indigo-400 mr-2 font-bold">•</span>
+              <span><strong>BST Deletion:</strong> Properly handles 3 cases: leaf node removal, single child replacement, and two-children node replacement with inorder successor.</span>
+            </li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-slate-200 mt-12 py-6 text-center text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2">
+      <p>College Data Structures & Algorithms (DSA) Project: <strong>Spell Checker Using Binary Search Tree</strong></p>
+      <p class="font-mono text-slate-400 text-[11px]">Vanilla JavaScript • HTML5 • Tailwind CSS • Pure In-Memory BST</p>
+    </div>
+  </footer>
+
+  <!-- SCRIPT: Data Structure Implementation & Application Logic -->
+  <script>
+    /* ==========================================================================
+       1. BINARY SEARCH TREE (BST) IMPLEMENTATION
+       ========================================================================== */
+
+    class BSTNode {
+      constructor(word) {
+        this.word = word.toLowerCase();
+        this.left = null;
+        this.right = null;
+      }
+    }
+
+    class BinarySearchTree {
+      constructor() {
+        this.root = null;
+        this.size = 0;
+      }
+
+      /**
+       * Inserts a word into the BST.
+       * Returns true if newly inserted, false if already exists.
+       */
+      insert(word) {
+        const cleanWord = word.toLowerCase().trim();
+        if (!cleanWord) return false;
+
+        if (this.root === null) {
+          this.root = new BSTNode(cleanWord);
+          this.size++;
+          return true;
+        }
+
+        let curr = this.root;
+        while (curr) {
+          if (cleanWord === curr.word) {
+            return false; // Word already in dictionary
+          } else if (cleanWord < curr.word) {
+            if (curr.left === null) {
+              curr.left = new BSTNode(cleanWord);
+              this.size++;
+              return true;
+            }
+            curr = curr.left;
+          } else {
+            if (curr.right === null) {
+              curr.right = new BSTNode(cleanWord);
+              this.size++;
+              return true;
+            }
+            curr = curr.right;
+          }
+        }
+        return false;
+      }
+
+      /**
+       * Searches for a word in the BST.
+       * Returns boolean.
+       */
+      search(word) {
+        const cleanWord = word.toLowerCase().trim();
+        if (!cleanWord) return false;
+
+        let curr = this.root;
+        while (curr) {
+          if (cleanWord === curr.word) {
+            return true;
+          } else if (cleanWord < curr.word) {
+            curr = curr.left;
+          } else {
+            curr = curr.right;
+          }
+        }
+        return false;
+      }
+
+      /**
+       * Searches for a word and records step-by-step traversal path.
+       */
+      searchWithPath(word) {
+        const cleanWord = word.toLowerCase().trim();
+        const steps = [];
+        let curr = this.root;
+        let comparisons = 0;
+
+        while (curr) {
+          comparisons++;
+          if (cleanWord === curr.word) {
+            steps.push({ node: curr.word, dir: 'MATCH', comp: comparisons });
+            return { found: true, steps, comparisons };
+          } else if (cleanWord < curr.word) {
+            steps.push({ node: curr.word, dir: 'LEFT', comp: comparisons });
+            curr = curr.left;
+          } else {
+            steps.push({ node: curr.word, dir: 'RIGHT', comp: comparisons });
+            curr = curr.right;
+          }
+        }
+
+        return { found: false, steps, comparisons };
+      }
+
+      /**
+       * Deletes a word from the BST.
+       * Returns boolean indicating whether word was deleted.
+       */
+      delete(word) {
+        const cleanWord = word.toLowerCase().trim();
+        if (!cleanWord) return false;
+
+        let deleted = false;
+
+        const removeNode = (node, key) => {
+          if (node === null) return null;
+
+          if (key < node.word) {
+            node.left = removeNode(node.left, key);
+            return node;
+          } else if (key > node.word) {
+            node.right = removeNode(node.right, key);
+            return node;
+          } else {
+            // Found target node
+            deleted = true;
+
+            // Case 1: Leaf node (no children)
+            if (node.left === null && node.right === null) {
+              return null;
+            }
+
+            // Case 2: Only one child
+            if (node.left === null) return node.right;
+            if (node.right === null) return node.left;
+
+            // Case 3: Two children - replace with inorder successor (min of right subtree)
+            let successor = node.right;
+            while (successor.left !== null) {
+              successor = successor.left;
+            }
+            node.word = successor.word;
+            node.right = removeNode(node.right, successor.word);
+            return node;
+          }
+        };
+
+        this.root = removeNode(this.root, cleanWord);
+        if (deleted) {
+          this.size--;
+        }
+        return deleted;
+      }
+
+      /**
+       * Calculates tree height (depth of longest branch).
+       */
+      getHeight(node = this.root) {
+        if (node === null) return 0;
+        return 1 + Math.max(this.getHeight(node.left), this.getHeight(node.right));
+      }
+
+      /**
+       * Inorder traversal collecting all words into an array (sorted order).
+       */
+      inorder() {
+        const result = [];
+        const traverse = (node) => {
+          if (!node) return;
+          traverse(node.left);
+          result.push(node.word);
+          traverse(node.right);
+        };
+        traverse(this.root);
+        return result;
+      }
+
+      /**
+       * Builds a balanced BST from a sorted array.
+       */
+      buildBalanced(sortedWords) {
+        const build = (start, end) => {
+          if (start > end) return null;
+          const mid = Math.floor((start + end) / 2);
+          const node = new BSTNode(sortedWords[mid]);
+          node.left = build(start, mid - 1);
+          node.right = build(mid + 1, end);
+          return node;
+        };
+
+        this.root = build(0, sortedWords.length - 1);
+        this.size = sortedWords.length;
+      }
+    }
+
+    /* ==========================================================================
+       2. LEVENSHTEIN DISTANCE & SUGGESTION ALGORITHM
+       ========================================================================== */
+
+    /**
+     * Computes the Levenshtein Distance between two strings.
+     */
+    function levenshteinDistance(s1, s2) {
+      const m = s1.length;
+      const n = s2.length;
+      if (Math.abs(m - n) > 3) return 999; // Quick pruning
+
+      const dp = Array.from({ length: m + 1 }, () => new Int16Array(n + 1));
+
+      for (let i = 0; i <= m; i++) dp[i][0] = i;
+      for (let j = 0; j <= n; j++) dp[0][j] = j;
+
+      for (let i = 1; i <= m; i++) {
+        for (let j = 1; j <= n; j++) {
+          if (s1[i - 1] === s2[j - 1]) {
+            dp[i][j] = dp[i - 1][j - 1];
+          } else {
+            dp[i][j] = 1 + Math.min(
+              dp[i - 1][j],     // deletion
+              dp[i][j - 1],     // insertion
+              dp[i - 1][j - 1]  // substitution
+            );
+          }
+        }
+      }
+      return dp[m][n];
+    }
+
+    /**
+     * Finds up to 'maxSuggestions' closest words for a misspelled word.
+     */
+    function getSuggestions(bst, word, maxSuggestions = 5) {
+      const target = word.toLowerCase();
+      const allWords = bst.inorder();
+      const candidates = [];
+
+      for (let i = 0; i < allWords.length; i++) {
+        const candidate = allWords[i];
+        const lenDiff = Math.abs(candidate.length - target.length);
+        if (lenDiff > 2) continue; // Skip words with high length difference for speed
+
+        const dist = levenshteinDistance(target, candidate);
+        if (dist <= 2) {
+          // Boost suggestions sharing the first character or sound
+          let score = dist * 10;
+          if (candidate[0] !== target[0]) score += 5;
+          if (candidate[candidate.length - 1] !== target[target.length - 1]) score += 2;
+          candidates.push({ word: candidate, dist, score });
+        }
+      }
+
+      // If we didn't find enough within distance 2, expand search to distance 3
+      if (candidates.length < maxSuggestions) {
+        for (let i = 0; i < allWords.length; i++) {
+          const candidate = allWords[i];
+          if (candidates.some(c => c.word === candidate)) continue;
+          const lenDiff = Math.abs(candidate.length - target.length);
+          if (lenDiff > 3) continue;
+
+          const dist = levenshteinDistance(target, candidate);
+          if (dist === 3) {
+            let score = dist * 10;
+            if (candidate[0] !== target[0]) score += 6;
+            candidates.push({ word: candidate, dist, score });
+            if (candidates.length >= maxSuggestions * 2) break;
+          }
+        }
+      }
+
+      // Sort by score (closest distance first), then alphabetically
+      candidates.sort((a, b) => {
+        if (a.score !== b.score) return a.score - b.score;
+        return a.word.localeCompare(b.word);
+      });
+
+      return candidates.slice(0, maxSuggestions).map(c => c.word);
+    }
+
+    /* ==========================================================================
+       3. DEFAULT DICTIONARY & BALANCED INITIALIZATION
+       ========================================================================== */
+
+    const DEFAULT_DICTIONARY = ["a","ability","able","about","above","abroad","absence","absolute","absolutely","academic","accept","acceptable","access","accident","accompany","according","account","accurate","accuse","achieve","achievement","acid","acquire","across","action","active","activity","actor","actress","actual","actually","adapt","addition","additional","address","adequate","adjust","administration","admire","admit","adopt","adult","advance","advanced","advantage","adventure","advertising","advice","advise","affair","affect","afford","afraid","after","afternoon","afterwards","again","against","age","agency","agent","aggressive","ago","agree","agreement","ahead","aid","aim","air","aircraft","airline","airport","alarm","album","alcohol","algorithm","alive","all","allow","almost","alone","along","already","also","alter","alternative","although","always","amazing","ambition","among","amount","analyse","analysis","analyst","ancient","and","anger","angle","angry","animal","anniversary","announce","announcement","annual","another","answer","anxiety","anxious","any","anybody","anymore","anyone","anything","anyway","anywhere","apart","apartment","apologize","apparent","apparently","appeal","appear","appearance","apple","application","apply","appoint","appointment","appreciate","approach","appropriate","approval","approve","approximate","architect","architecture","area","argue","argument","arise","arm","armed","army","around","arrange","arrangement","array","arrest","arrival","arrive","arrow","art","article","artist","artistic","as","ashamed","aside","ask","asleep","aspect","assess","assessment","assignment","assist","assistance","assistant","associate","association","assume","assumption","assure","at","athlete","atmosphere","attach","attack","attempt","attend","attention","attitude","attorney","attract","attraction","attractive","attribute","audience","author","authority","automatic","automatically","autumn","available","average","avoid","award","aware","awareness","away","awful","baby","back","background","bad","badly","bag","bake","balance","ball","ban","band","bank","bar","barrier","base","baseball","basic","basically","basis","basket","basketball","battery","battle","be","beach","bear","beat","beautiful","beauty","because","become","bed","bedroom","beer","before","begin","beginning","behalf","behave","behavior","behind","belief","believe","bell","belong","below","belt","bench","bend","beneath","benefit","beside","besides","best","bet","better","between","beyond","bicycle","bid","big","bike","bill","binary","biology","bird","birth","birthday","bit","bite","black","blade","blame","blank","blind","block","blood","blow","blue","board","boat","body","boil","bomb","bond","bone","book","boom","boot","border","bored","boring","born","borrow","boss","both","bother","bottle","bottom","boundary","bowl","box","boy","boyfriend","brain","branch","brand","brave","bread","break","breakfast","breast","breath","breathe","brick","bridge","brief","briefly","bright","brilliant","bring","broad","broadcast","brother","brown","brush","budget","build","builder","building","bullet","bunch","burn","burst","bury","bus","bush","business","busy","but","butter","button","buy","buyer","by","cabinet","cable","cake","calculate","calculation","calendar","call","calm","camera","camp","campaign","campus","can","cancel","cancer","candidate","candy","cap","capability","capable","capacity","capital","captain","capture","car","card","care","career","careful","carefully","carrier","carry","case","cash","cast","cat","catch","category","cause","cease","ceiling","celebrate","celebration","cell","center","central","century","ceremony","certain","certainly","chain","chair","chairman","challenge","chamber","champion","championship","chance","change","channel","chapter","character","characteristic","characterize","charge","charity","chart","chase","cheap","check","cheek","cheese","chemical","chest","chicken","chief","child","childhood","chocolate","choice","choose","church","cigarette","circle","circuit","circumstance","cite","citizen","city","civil","claim","class","classic","classical","classroom","clean","clear","clearly","clerk","clever","client","climate","climb","clinic","clock","close","closely","closer","closest","clothes","clothing","cloud","club","clue","coach","coal","coalition","coast","coat","code","coffee","cognitive","cold","collapse","colleague","collect","collection","college","colony","color","column","combination","combine","come","comedy","comfort","comfortable","command","commander","comment","commercial","commission","commit","commitment","committee","common","communicate","communication","community","company","compare","comparison","compete","competition","competitive","competitor","complain","complaint","complete","completely","complex","complexity","component","compose","composition","comprehensive","compromise","computer","concentrate","concentration","concept","concern","concerned","concert","conclude","conclusion","concrete","condition","conduct","conference","confidence","confident","confirm","conflict","confront","confusion","connect","connection","conscious","consequence","conservative","consider","considerable","consideration","consist","consistent","constant","constantly","constitute","constitutional","construct","construction","consult","consultant","consume","consumer","consumption","contact","contain","container","contemporary","content","contest","context","continue","continued","contract","contrast","contribute","contribution","control","controversial","convention","conventional","conversation","convert","convince","cook","cookie","cool","cooperation","cope","copy","core","corner","corporate","corporation","correct","correspond","cost","cotton","couch","could","council","counsel","count","counter","country","county","couple","courage","course","court","cousin","cover","coverage","cow","crack","craft","crash","crazy","cream","create","creation","creative","creature","credit","crew","crime","criminal","crisis","criteria","critic","critical","criticism","criticize","crop","cross","crowd","crucial","cry","cultural","culture","cup","curious","current","currently","curtain","custom","customer","cut","cycle","daily","damage","dance","danger","dangerous","dare","dark","darkness","data","database","date","daughter","day","dead","deal","dealer","dear","death","debate","debt","decade","decay","decide","decision","declare","decline","decorate","decrease","deep","deeply","deer","defeat","defend","defense","defensive","deficit","define","definitely","definition","degree","delay","deliver","delivery","demand","democracy","democratic","demonstrate","demonstration","denial","deny","department","departure","depend","dependent","depict","deposit","depressed","depression","depth","deputy","derive","describe","description","desert","deserve","design","designer","desire","desk","desperate","despite","destroy","destruction","detail","detailed","detect","determine","develop","development","device","devote","dialogue","diet","differ","difference","different","difficult","difficulty","dig","digital","dimension","dinner","direct","direction","directly","director","dirt","dirty","disability","disagree","disappear","disaster","discipline","discourse","discover","discovery","discuss","discussion","disease","dish","dismiss","disorder","display","dispute","distance","distant","distinct","distinction","distinguish","distribute","distribution","district","diverse","diversity","divide","division","divorce","doctor","document","dog","domestic","dominant","dominate","door","double","doubt","down","draft","drag","drama","dramatic","dramatically","draw","drawer","drawing","dream","dress","drink","drive","driver","drop","drug","dry","due","during","dust","duty","each","eager","ear","early","earn","earnings","earth","ease","easily","east","eastern","easy","eat","economic","economics","economist","economy","edge","edition","editor","educate","education","educational","educator","effect","effective","effectively","efficiency","efficient","effort","egg","eight","either","elderly","elect","election","electric","electricity","electronic","element","elementary","eliminate","elite","else","elsewhere","email","embrace","emerge","emergency","emission","emotion","emotional","emphasis","emphasize","empire","employ","employee","employer","employment","empty","enable","encounter","encourage","end","enemy","energy","enforcement","engage","engine","engineer","engineering","enhance","enjoy","enormous","enough","ensure","enter","enterprise","entertainment","entire","entirely","entrance","entry","environment","environmental","episode","equal","equally","equipment","era","error","escape","especially","essay","essential","essentially","establish","establishment","estate","estimate","ethics","ethnic","evaluate","evaluation","even","evening","event","eventually","ever","every","everybody","everyday","everyone","everything","everywhere","evidence","evolution","evolve","exact","exactly","examination","examine","example","exceed","excellent","except","exception","exchange","exciting","exclude","excuse","execute","execution","executive","exercise","exhibit","exhibition","exist","existence","existing","expand","expansion","expect","expectation","expense","expensive","experience","experiment","expert","explain","explanation","explode","explore","explosion","expose","exposure","express","expression","extend","extension","extensive","extent","external","extra","extraordinary","extreme","extremely","eye","fabric","face","facility","fact","factor","factory","faculty","fade","fail","failure","fair","fairly","faith","fall","false","familiar","family","famous","fan","fantasy","far","farm","farmer","fashion","fast","fat","fate","father","fault","favor","favorite","fear","feature","federal","fee","feed","feel","feeling","fellow","female","fence","few","fewer","fiber","fiction","field","fifteen","fifth","fifty","fight","fighter","fighting","figure","file","fill","film","final","finally","finance","financial","find","finding","fine","finger","finish","fire","firm","first","fish","fishing","fit","fitness","five","fix","flag","flame","flash","flat","flavor","flee","fleet","flesh","flight","float","flood","floor","flow","flower","fly","focus","folk","follow","following","food","foot","football","for","force","foreign","forest","forever","forget","form","formal","formation","former","formula","forth","fortune","forward","found","foundation","founder","four","fourth","frame","framework","free","freedom","freeze","frequency","frequent","frequently","fresh","friend","friendly","friendship","from","front","fruit","frustration","fuel","full","fully","fun","function","fund","fundamental","funding","funeral","funny","furniture","furthermore","future","gain","galaxy","gallery","game","gang","gap","garage","garden","garlic","gas","gate","gather","gaze","gear","gender","gene","general","generally","generate","generation","genetic","gentleman","gently","gesture","get","ghost","giant","gift","gifted","girl","girlfriend","give","given","glad","glance","glass","global","glove","go","goal","god","gold","golden","golf","good","government","governor","grab","grade","gradually","graduate","grain","grand","grandfather","grandmother","grant","graph","grass","grave","gray","great","greatest","green","grocery","ground","group","grow","growing","growth","guarantee","guard","guess","guest","guide","guideline","guilty","gun","guy","habit","habitat","hair","half","hall","hand","handful","handle","hang","happen","happy","hard","hardly","hat","hate","have","he","head","headline","headquarters","health","healthy","hear","hearing","heart","heat","heaven","heavily","heavy","heel","height","helicopter","hell","hello","help","helpful","her","here","heritage","hero","herself","hesitate","hide","high","highlight","highly","highway","hill","him","himself","hire","his","historian","historic","historical","history","hit","hold","hole","holiday","holy","home","homeless","honest","honey","honor","hope","horizon","horror","horse","hospital","host","hot","hotel","hour","house","household","housing","how","however","huge","human","humor","hundred","hungry","hunt","hunter","hunting","hurt","husband","hypothesis","ice","idea","ideal","identification","identify","identity","ie","if","ignore","ill","illegal","illness","illustrate","image","imagination","imagine","immediate","immediately","immigrant","immigration","impact","implement","implication","imply","importance","important","impose","impossible","impress","impression","impressive","improve","improvement","in","incentive","incident","include","including","income","incorporate","increase","increased","increasing","increasingly","incredible","indeed","independence","independent","index","indicate","indication","individual","industrial","industry","infant","infection","inflation","influence","inform","information","ingredient","initial","initially","initiative","injury","inner","innocent","inquiry","inside","insight","insist","inspire","install","instance","instead","institution","institutional","instruction","instructor","instrument","insurance","intellectual","intelligence","intend","intense","intensity","intention","interaction","interest","interested","interesting","internal","international","internet","interpret","interpretation","intervention","interview","into","introduce","introduction","invasion","invest","investigate","investigation","investigator","investment","investor","invite","involve","involved","involvement","iron","island","issue","it","item","its","itself","jacket","jail","jar","jaw","jazz","jet","jewel","job","join","joint","joke","journal","journalist","journey","joy","judge","judgment","juice","jump","junior","jurisdiction","jury","just","justice","justify","keep","key","kick","kid","kill","killer","killing","kind","king","kiss","kitchen","knee","knife","knock","know","knowledge","lab","label","labor","laboratory","lack","lady","lake","land","landscape","language","lap","large","largely","last","late","latter","laugh","launch","law","lawn","lawsuit","lawyer","lay","layer","lead","leader","leadership","leading","leaf","league","lean","learn","learning","least","leather","leave","lecture","left","leg","legacy","legal","legend","legislation","legitimate","lemon","length","less","lesson","let","letter","level","liability","liberal","library","license","lie","life","lifestyle","lifetime","lift","light","like","likely","limit","limitation","limited","line","link","lip","liquid","list","listen","literally","literary","literature","little","live","living","load","loan","local","locate","location","lock","log","logic","logical","lonely","long","look","loose","lose","loss","lost","lot","lots","loud","love","lovely","lover","low","lower","loyal","luck","lucky","lunch","lung","machine","magazine","mail","main","mainly","maintain","maintenance","major","majority","make","maker","makeup","male","mall","man","manage","management","manager","manner","manufacturer","manufacturing","many","map","margin","mark","market","marketing","marriage","married","marry","mask","mass","massive","master","match","material","math","matter","may","maybe","mayor","me","meal","mean","meaning","meanwhile","measure","measurement","meat","mechanism","media","medical","medication","medicine","medium","meet","meeting","member","membership","memory","mental","mention","menu","mere","merely","mess","message","metal","meter","method","middle","might","military","milk","million","mind","mine","minister","minor","minority","minute","miracle","mirror","miss","missile","mission","mistake","mix","mixture","mobile","mode","model","moderate","modern","modest","modify","molecule","moment","money","monitor","month","mood","moon","moral","more","moreover","morning","mortgage","most","mostly","mother","motion","motivation","motor","mount","mountain","mouse","mouth","move","movement","movie","much","multiple","murder","muscle","museum","music","musical","musician","must","mutual","my","myself","mystery","nail","name","narrative","narrow","nation","national","native","natural","naturally","nature","near","nearby","nearly","necessarily","necessary","neck","need","negative","negotiate","negotiation","neighbor","neighborhood","neither","nerve","nervous","net","network","never","nevertheless","new","newly","news","newspaper","next","nice","night","nine","no","nobody","nod","node","noise","nomination","none","nonetheless","nor","normal","normally","north","northern","nose","not","note","nothing","notice","notion","novel","now","nowhere","nuclear","number","numerous","nurse","nut","object","objective","obligation","observation","observe","observer","obtain","obvious","obviously","occasion","occasionally","occupation","occupy","occur","ocean","odd","odds","of","off","offense","offensive","offer","office","officer","official","often","oil","okay","old","olympic","on","once","one","ongoing","onion","online","only","onto","open","opening","operate","operating","operation","operator","opinion","opponent","opportunity","oppose","opposite","opposition","option","or","orange","order","ordinary","organic","organization","organize","orientation","origin","original","originally","other","others","otherwise","ought","our","ourselves","out","outcome","outside","oven","over","overall","overcome","overlook","owe","own","owner","pace","pack","package","page","pain","painful","paint","painter","painting","pair","pale","palm","pan","panel","pant","paper","parent","park","parking","part","participant","participate","participation","particular","particularly","partly","partner","partnership","party","pass","passage","passenger","passion","past","patch","path","patient","pattern","pause","pay","payment","peace","peak","peer","penalty","people","pepper","per","perceive","percentage","perception","perfect","perfectly","perform","performance","performer","perhaps","period","permanent","permission","permit","person","personal","personality","personally","personnel","perspective","persuade","pet","phase","phenomenon","philosophy","phone","photo","photograph","photographer","phrase","physical","physically","physician","piano","pick","picture","pie","piece","pile","pilot","pine","pink","pipe","pitch","place","plan","plane","planet","planner","planning","plant","plastic","plate","platform","play","player","pleasant","please","pleasure","plenty","plot","plus","pocket","poem","poet","poetry","point","pointer","pole","police","policy","political","politically","politician","politics","poll","pollution","pool","poor","pop","popular","population","porch","port","portion","portrait","portray","pose","position","positive","possess","possibility","possible","possibly","post","pot","potato","potential","potentially","pound","pour","poverty","powder","power","powerful","practical","practice","pray","prayer","precisely","predict","prefer","preference","pregnancy","pregnant","preparation","prepare","prescription","presence","present","presentation","preserve","president","presidential","press","pressure","pretend","pretty","prevent","previous","previously","price","pride","priest","primarily","primary","prime","principal","principle","print","prior","priority","prison","prisoner","privacy","private","probably","problem","procedure","proceed","process","produce","producer","product","production","profession","professional","professor","profile","profit","program","progress","project","prominent","promise","promote","prompt","proof","proper","properly","property","proportion","proposal","propose","proposed","prosecutor","prospect","protect","protection","protein","protest","proud","prove","provide","provider","province","provision","psychological","psychologist","psychology","public","publication","publicly","publish","publisher","pull","punishment","purchase","pure","purpose","pursue","push","put","qualify","quality","quarter","quarterback","queen","question","queue","quick","quickly","quiet","quietly","quit","quite","quote","race","racial","radical","radio","rail","rain","raise","range","rank","rapid","rapidly","rare","rarely","rate","rather","rating","ratio","raw","reach","react","reaction","read","reader","reading","ready","real","reality","realize","really","reason","reasonable","recall","receive","recent","recently","recipe","recognition","recognize","recommend","recommendation","record","recording","recover","recovery","recruit","recursion","red","reduce","reduction","refer","reference","reflect","reflection","reform","refugee","refuse","regard","regarding","regardless","regime","region","regional","register","regular","regularly","regulate","regulation","reinforce","reject","relate","relation","relationship","relative","relatively","relax","release","relevant","relief","religion","religious","rely","remain","remaining","remarkable","remember","remind","remote","remove","repeat","repeatedly","replace","reply","report","reporter","represent","representation","representative","reputation","request","require","requirement","research","researcher","resemble","reservation","resident","resist","resistance","resolution","resolve","resort","resource","respect","respond","respondent","response","responsibility","responsible","rest","restaurant","restore","restriction","result","retain","retire","retirement","return","reveal","revenue","review","revolution","rhythm","rice","rich","rid","ride","rifle","right","ring","rise","risk","river","road","rock","role","roll","romantic","roof","room","root","rope","rose","rough","roughly","round","route","routine","row","rub","rule","run","running","rural","rush","sacred","sad","safe","safety","sake","salad","salary","sale","sales","salt","same","sample","sanction","sand","satellite","satisfaction","satisfy","sauce","save","saving","say","scale","scan","scandal","scared","scenario","scene","schedule","scheme","scholar","scholarship","school","science","scientific","scientist","scope","score","scream","screen","script","sea","search","season","seat","second","secret","secretary","section","sector","secure","security","see","seed","seek","seem","segment","seize","select","selection","self","sell","seller","senate","senator","send","senior","sense","sensitive","sentence","separate","sequence","series","serious","seriously","serve","service","session","set","setting","settle","settlement","seven","several","severe","sex","sexual","shade","shadow","shake","shall","shape","share","sharp","she","sheet","shelf","shell","shelter","shift","shine","ship","shirt","shit","shock","shoe","shoot","shooting","shop","shopping","shore","short","shortly","shot","should","shoulder","shout","show","shower","shrug","shut","sick","side","sigh","sight","sign","signal","significance","significant","significantly","silence","silent","silver","similar","similarly","simple","simply","sin","since","sing","singer","single","sink","sir","sister","sit","site","situation","six","size","ski","skill","skin","sky","slave","sleep","slice","slide","slight","slightly","slip","slow","slowly","small","smart","smell","smile","smoke","smooth","snap","snow","so","soccer","social","society","soft","softly","soil","solar","soldier","solid","solution","solve","some","somebody","somehow","someone","something","sometimes","somewhat","somewhere","son","song","soon","sophisticated","sorry","sort","soul","sound","soup","source","south","southern","space","speak","speaker","special","specialist","species","specific","specifically","speech","speed","spend","spending","spin","spirit","spiritual","split","spokesman","sport","spot","spread","spring","square","squeeze","stability","stable","stack","staff","stage","stair","stake","stand","standard","standing","star","stare","start","state","statement","station","statistics","status","stay","steady","steal","steel","step","stick","still","stir","stock","stomach","stone","stop","storage","store","storm","story","straight","strange","stranger","strategic","strategy","stream","street","strength","strengthen","stress","stretch","strike","string","strip","stroke","strong","strongly","structure","struggle","student","studio","study","stuff","stupid","style","subject","submit","subsequent","substance","substantial","succeed","success","successful","successfully","such","sudden","suddenly","sue","suffer","sufficient","sugar","suggest","suggestion","suit","suitable","summer","summit","sun","super","supply","support","supporter","suppose","supposed","supreme","sure","surely","surface","surgery","surprise","surprised","surprising","surprisingly","surround","survey","survival","survive","survivor","suspect","sustain","swear","sweep","sweet","swim","swing","switch","symbol","symptom","syntax","system","table","tablespoon","tactic","tail","take","tale","talent","talk","tall","tank","tap","tape","target","task","taste","tax","taxpayer","tea","teach","teacher","teaching","team","tear","teaspoon","technical","technique","technology","teen","teenager","telephone","telescope","television","tell","temperature","temporary","ten","tend","tendency","tennis","tension","tent","term","terms","terrible","territory","terror","terrorism","terrorist","test","testify","testimony","testing","text","than","thank","thanks","that","the","theater","their","them","theme","themselves","then","theory","therapy","there","therefore","these","they","thick","thin","thing","think","thinking","third","thirty","this","those","though","thought","thousand","threat","threaten","three","throat","through","throughout","throw","thus","ticket","tie","tight","time","tiny","tip","tire","tired","tissue","title","to","tobacco","today","toe","together","tomato","tomorrow","tone","tongue","tonight","too","tool","tooth","top","topic","toss","total","totally","touch","tough","tour","tourist","tournament","toward","towards","tower","town","toy","trace","track","trade","tradition","traditional","traffic","tragedy","trail","train","trainer","training","transfer","transform","transformation","transition","translate","transportation","travel","treat","treatment","treaty","tree","tremendous","trend","trial","tribe","trick","trip","troop","trouble","truck","true","truly","trust","truth","try","tube","tunnel","turn","twelve","twenty","twice","twin","two","type","typical","typically","ugly","ultimate","ultimately","unable","uncle","under","undergo","understand","understanding","unfortunately","uniform","union","unique","unit","united","universal","universe","university","unknown","unless","unlike","unlikely","until","unusual","up","upon","upper","urban","urge","us","use","used","useful","user","usual","usually","utility","vacation","valley","valuable","value","variable","variation","variety","various","vary","vast","vegetable","vehicle","venture","version","versus","very","vessel","veteran","via","victim","victory","video","view","viewer","village","violate","violation","violence","violent","virtually","virtue","virus","visible","vision","visit","visitor","visual","vital","voice","volume","volunteer","vote","voter","vulnerable","wage","wait","wake","walk","wall","wander","want","war","warm","warn","warning","wash","waste","watch","water","wave","way","we","weak","wealth","wealthy","weapon","wear","weather","wedding","week","weekend","weekly","weigh","weight","welcome","welfare","well","west","western","wet","what","whatever","wheel","when","whenever","where","whereas","whether","which","while","whisper","white","who","whole","whom","whose","why","wide","widely","widespread","wife","wild","will","willing","win","wind","window","wine","wing","winner","winter","wipe","wire","wisdom","wise","wish","with","withdraw","within","without","witness","woman","wonder","wonderful","wood","wooden","word","work","worker","working","works","workshop","world","worried","worry","worth","would","wound","wrap","write","writer","writing","wrong","yard","yeah","year","yell","yellow","yes","yesterday","yet","yield","you","young","your","yours","yourself","youth","zero","zone","zoo"];
+
+    // Create the global BST instance
+    const dictionaryBST = new BinarySearchTree();
+
+    // Initialize with balanced insertion to avoid degenerate linked-list tree
+    function initDictionary() {
+      // Sort words and build balanced tree
+      const sorted = [...DEFAULT_DICTIONARY].sort();
+      dictionaryBST.buildBalanced(sorted);
+      updateStatsUI();
+      renderBSTGraph();
+    }
+
+    /* ==========================================================================
+       4. UI STATS & METRICS UPDATER
+       ========================================================================== */
+
+    function updateStatsUI() {
+      const size = dictionaryBST.size;
+      const height = dictionaryBST.getHeight();
+      const idealHeight = Math.ceil(Math.log2(size + 1));
+
+      document.getElementById('header-dict-count').innerText = `${size.toLocaleString()} words`;
+      document.getElementById('stat-tree-size').innerText = size.toLocaleString();
+      document.getElementById('stat-tree-height').innerText = height;
+      document.getElementById('stat-tree-ideal').innerText = `Ideal balanced: ~${idealHeight} levels`;
+    }
+
+    /* ==========================================================================
+       5. SPELL CHECKING LOGIC & HIGHLIGHTING
+       ========================================================================== */
+
+    // Map to keep track of misspelled words and their suggestions
+    let currentMisspelledMap = new Map();
+
+    function performSpellCheck() {
+      const text = document.getElementById('input-text').value;
+      const outputContainer = document.getElementById('highlighted-output');
+      const suggestionsList = document.getElementById('suggestions-list');
+      const suggestionsEmpty = document.getElementById('suggestions-empty');
+      const badgeErrors = document.getElementById('badge-errors-count');
+      const diagnosticMsg = document.getElementById('diagnostic-message');
+
+      if (!text.trim()) {
+        outputContainer.innerHTML = '<span class="text-slate-400 italic">Please enter text above to check spelling.</span>';
+        suggestionsList.classList.add('hidden');
+        suggestionsEmpty.classList.remove('hidden');
+        badgeErrors.innerText = '0 Errors';
+        badgeErrors.className = 'text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-semibold';
+        document.getElementById('stat-words-checked').innerText = '0';
+        document.getElementById('stat-misspelled-count').innerText = '0';
+        document.getElementById('stat-accuracy').innerText = 'Awaiting check';
+        diagnosticMsg.innerText = 'No input text provided';
+        return;
+      }
+
+      currentMisspelledMap.clear();
+
+      // Split text into tokens preserving delimiters (whitespace, punctuation)
+      // Regex captures words and non-words
+      const tokens = text.match(/([a-zA-Z]+|[^a-zA-Z]+)/g) || [];
+
+      let totalWords = 0;
+      let misspelledCount = 0;
+      let htmlPieces = [];
+
+      tokens.forEach((token, index) => {
+        // If token is an alphabetic word
+        if (/^[a-zA-Z]+$/.test(token)) {
+          totalWords++;
+          const lower = token.toLowerCase();
+          const isCorrect = dictionaryBST.search(lower);
+
+          if (isCorrect) {
+            htmlPieces.push(`<span class="correct-highlight" title="Found in BST Dictionary">${escapeHtml(token)}</span>`);
+          } else {
+            misspelledCount++;
+            if (!currentMisspelledMap.has(lower)) {
+              currentMisspelledMap.set(lower, {
+                original: token,
+                occurrences: 1,
+                suggestions: getSuggestions(dictionaryBST, lower, 5)
+              });
+            } else {
+              currentMisspelledMap.get(lower).occurrences++;
+            }
+
+            htmlPieces.push(
+              `<span class="misspelled-highlight" data-word="${escapeHtml(lower)}" onclick="focusSuggestion('${escapeHtml(lower)}')" title="Misspelled - Click to view suggestions">${escapeHtml(token)}</span>`
+            );
+          }
+        } else {
+          // Whitespace / punctuation preserved as is
+          htmlPieces.push(escapeHtml(token));
+        }
+      });
+
+      // Update highlighted display
+      outputContainer.innerHTML = htmlPieces.join('');
+
+      // Update stats
+      document.getElementById('stat-words-checked').innerText = totalWords;
+      document.getElementById('stat-misspelled-count').innerText = misspelledCount;
+      const accuracy = totalWords > 0 ? Math.round(((totalWords - misspelledCount) / totalWords) * 100) : 100;
+      document.getElementById('stat-accuracy').innerText = `${accuracy}% accuracy rate`;
+
+      // Update badge
+      badgeErrors.innerText = `${misspelledCount} ${misspelledCount === 1 ? 'Error' : 'Errors'}`;
+      if (misspelledCount > 0) {
+        badgeErrors.className = 'text-xs px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 font-semibold';
+      } else {
+        badgeErrors.className = 'text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-semibold';
+      }
+
+      // Render suggestions in side panel
+      renderSuggestionsSidePanel();
+
+      diagnosticMsg.innerText = `Checked ${totalWords} words across dictionary in O(log n) average time.`;
+    }
+
+    /**
+     * Renders the misspelled words cards and suggestions in the right side panel
+     */
+    function renderSuggestionsSidePanel() {
+      const suggestionsList = document.getElementById('suggestions-list');
+      const suggestionsEmpty = document.getElementById('suggestions-empty');
+
+      if (currentMisspelledMap.size === 0) {
+        suggestionsList.classList.add('hidden');
+        suggestionsEmpty.classList.remove('hidden');
+        return;
+      }
+
+      suggestionsEmpty.classList.add('hidden');
+      suggestionsList.classList.remove('hidden');
+      suggestionsList.innerHTML = '';
+
+      currentMisspelledMap.forEach((data, wrongWord) => {
+        const card = document.createElement('div');
+        card.id = `suggestion-card-${wrongWord}`;
+        card.className = 'p-3.5 rounded-xl border border-rose-200 bg-rose-50/40 hover:bg-rose-50/80 transition shadow-xs';
+
+        let suggestionsHtml = '';
+        if (data.suggestions.length > 0) {
+          suggestionsHtml = data.suggestions.map(sug => `
+            <button
+              onclick="replaceWord('${escapeHtml(wrongWord)}', '${escapeHtml(sug)}')"
+              class="inline-flex items-center text-xs px-2.5 py-1 rounded-lg bg-white hover:bg-indigo-600 hover:text-white text-indigo-700 border border-indigo-200/80 hover:border-indigo-600 font-medium transition shadow-xs group"
+              title="Click to replace '${escapeHtml(wrongWord)}' with '${escapeHtml(sug)}'"
+            >
+              ${escapeHtml(sug)}
+              <svg class="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+            </button>
+          `).join('');
+        } else {
+          suggestionsHtml = '<span class="text-xs text-slate-400 italic">No close suggestions found</span>';
+        }
+
+        card.innerHTML = `
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center space-x-2">
+              <span class="text-xs font-bold text-rose-700 uppercase tracking-wide bg-rose-100 px-2 py-0.5 rounded font-mono">
+                "${escapeHtml(wrongWord)}"
+              </span>
+              ${data.occurrences > 1 ? `<span class="text-[11px] text-slate-400 font-medium">(${data.occurrences}x)</span>` : ''}
+            </div>
+            <button
+              onclick="quickAddWord('${escapeHtml(wrongWord)}')"
+              class="text-[11px] text-indigo-600 hover:text-indigo-800 font-medium hover:underline flex items-center"
+              title="Add this word to the dictionary BST"
+            >
+              + Add to Dict
+            </button>
+          </div>
+          <div class="text-[11px] text-slate-500 mb-1.5 font-medium">Suggestions (Levenshtein ≤ 2):</div>
+          <div class="flex flex-wrap gap-1.5">
+            ${suggestionsHtml}
+          </div>
+        `;
+
+        suggestionsList.appendChild(card);
+      });
+    }
+
+    /**
+     * Replaces all instances of a misspelled word with the selected suggestion.
+     */
+    function replaceWord(wrongWord, replacement) {
+      const textarea = document.getElementById('input-text');
+      const text = textarea.value;
+
+      // Case-insensitive word boundary replacement
+      const regex = new RegExp(`\\b${wrongWord}\\b`, 'gi');
+      const updatedText = text.replace(regex, (match) => {
+        // Preserve capitalization if first letter was uppercase
+        if (match[0] === match[0].toUpperCase() && match.slice(1) === match.slice(1).toLowerCase()) {
+          return replacement.charAt(0).toUpperCase() + replacement.slice(1);
+        }
+        return replacement;
+      });
+
+      textarea.value = updatedText;
+      updateWordAndCharCount();
+      performSpellCheck();
+
+      showToast(`Replaced "${wrongWord}" with "${replacement}"`, 'success');
+    }
+
+    /**
+     * Highlights and scrolls to the card in the suggestions panel
+     */
+    function focusSuggestion(wrongWord) {
+      const card = document.getElementById(`suggestion-card-${wrongWord}`);
+      if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        card.classList.add('ring-2', 'ring-indigo-500');
+        setTimeout(() => {
+          card.classList.remove('ring-2', 'ring-indigo-500');
+        }, 1500);
+      }
+    }
+
+    /**
+     * Helper to add a misspelled word directly into the dictionary from the suggestions panel.
+     */
+    function quickAddWord(word) {
+      const added = dictionaryBST.insert(word);
+      if (added) {
+        updateStatsUI();
+        renderBSTGraph();
+        performSpellCheck();
+        showToast(`Added "${word}" to dictionary BST!`, 'success');
+      } else {
+        showToast(`"${word}" already exists in dictionary.`, 'info');
+      }
+    }
+
+    /* ==========================================================================
+       6. BST GRAPH VISUALIZER (SVG RENDERING)
+       ========================================================================== */
+
+    /**
+     * Draws the top 4 levels of the current BST onto the SVG canvas.
+     */
+    function renderBSTGraph() {
+      const svg = document.getElementById('bst-svg');
+      if (!svg) return;
+      svg.innerHTML = '';
+
+      if (!dictionaryBST.root) {
+        svg.innerHTML = `<text x="400" y="140" fill="#94a3b8" text-anchor="middle" font-size="14">BST is currently empty</text>`;
+        return;
+      }
+
+      const maxLevel = 4; // Display up to 4 levels
+      const nodesToDraw = [];
+      const linksToDraw = [];
+
+      // Recursive helper to assign coordinate positions
+      function traverseForLayout(node, level, x, y, xOffset) {
+        if (!node || level > maxLevel) return;
+
+        nodesToDraw.push({ word: node.word, x, y, level });
+
+        const nextY = y + 54;
+        const nextXOffset = xOffset / 2;
+
+        if (node.left && level < maxLevel) {
+          const childX = x - xOffset;
+          linksToDraw.push({ x1: x, y1: y, x2: childX, y2: nextY, type: 'left' });
+          traverseForLayout(node.left, level + 1, childX, nextY, nextXOffset);
+        }
+
+        if (node.right && level < maxLevel) {
+          const childX = x + xOffset;
+          linksToDraw.push({ x1: x, y1: y, x2: childX, y2: nextY, type: 'right' });
+          traverseForLayout(node.right, level + 1, childX, nextY, nextXOffset);
+        }
+      }
+
+      // Root starts at top center (x=400, y=32)
+      traverseForLayout(dictionaryBST.root, 1, 400, 32, 190);
+
+      // 1. Draw SVG Connecting Lines
+      linksToDraw.forEach(link => {
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', link.x1);
+        line.setAttribute('y1', link.y1);
+        line.setAttribute('x2', link.x2);
+        line.setAttribute('y2', link.y2);
+        line.setAttribute('stroke', link.type === 'left' ? '#3b82f6' : '#a855f7');
+        line.setAttribute('stroke-width', '1.75');
+        line.setAttribute('stroke-dasharray', '3,3');
+        line.setAttribute('opacity', '0.6');
+        svg.appendChild(line);
+      });
+
+      // 2. Draw Nodes (Circle + Text)
+      nodesToDraw.forEach(item => {
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        g.setAttribute('class', 'tree-node cursor-pointer');
+
+        // Node Circle
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', item.x);
+        circle.setAttribute('cy', item.y);
+        circle.setAttribute('r', '17');
+
+        // Color coding by level
+        if (item.level === 1) {
+          circle.setAttribute('fill', '#4f46e5'); // Root: indigo
+          circle.setAttribute('stroke', '#818cf8');
+        } else if (item.level === 2) {
+          circle.setAttribute('fill', '#0284c7'); // Level 2: sky
+          circle.setAttribute('stroke', '#38bdf8');
+        } else if (item.level === 3) {
+          circle.setAttribute('fill', '#059669'); // Level 3: emerald
+          circle.setAttribute('stroke', '#34d399');
+        } else {
+          circle.setAttribute('fill', '#d97706'); // Level 4: amber
+          circle.setAttribute('stroke', '#fbbf24');
+        }
+        circle.setAttribute('stroke-width', '2');
+        g.appendChild(circle);
+
+        // Node Text
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', item.x);
+        text.setAttribute('y', item.y + 4);
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('fill', '#ffffff');
+        text.setAttribute('font-size', '10');
+        text.setAttribute('font-weight', '600');
+
+        // Truncate long words for visual cleanliness
+        const displayWord = item.word.length > 5 ? item.word.substring(0, 4) + '..' : item.word;
+        text.textContent = displayWord;
+        g.appendChild(text);
+
+        // Title tooltip for full word
+        const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+        title.textContent = `Word: "${item.word}" (Level ${item.level})`;
+        g.appendChild(title);
+
+        svg.appendChild(g);
+      });
+    }
+
+    /* ==========================================================================
+       7. DICTIONARY MANAGEMENT HANDLERS (ADD / DELETE / TRACE SEARCH)
+       ========================================================================== */
+
+    function handleAddWord() {
+      const input = document.getElementById('input-add-word');
+      const word = input.value.trim().toLowerCase();
+
+      if (!word) {
+        showToast('Please enter a word to insert.', 'error');
+        return;
+      }
+      if (!/^[a-z]+$/.test(word)) {
+        showToast('Only alphabetic English characters allowed.', 'error');
+        return;
+      }
+
+      const inserted = dictionaryBST.insert(word);
+      if (inserted) {
+        input.value = '';
+        updateStatsUI();
+        renderBSTGraph();
+        performSpellCheck();
+        showToast(`Successfully inserted "${word}" into BST!`, 'success');
+      } else {
+        showToast(`"${word}" already exists in the BST dictionary.`, 'info');
+      }
+    }
+
+    function handleDeleteWord() {
+      const input = document.getElementById('input-delete-word');
+      const word = input.value.trim().toLowerCase();
+
+      if (!word) {
+        showToast('Please enter a word to delete.', 'error');
+        return;
+      }
+
+      const deleted = dictionaryBST.delete(word);
+      if (deleted) {
+        input.value = '';
+        updateStatsUI();
+        renderBSTGraph();
+        performSpellCheck();
+        showToast(`Successfully removed "${word}" from BST dictionary.`, 'success');
+      } else {
+        showToast(`Word "${word}" not found in BST dictionary.`, 'error');
+      }
+    }
+
+    function handleSearchTrace() {
+      const input = document.getElementById('input-search-word');
+      const word = input.value.trim().toLowerCase();
+      const traceBox = document.getElementById('search-trace-box');
+      const stepsContainer = document.getElementById('search-trace-steps');
+      const comparisonsEl = document.getElementById('search-trace-comparisons');
+
+      if (!word) {
+        showToast('Enter a word to trace BST lookup.', 'error');
+        return;
+      }
+
+      const result = dictionaryBST.searchWithPath(word);
+      traceBox.classList.remove('hidden');
+      stepsContainer.innerHTML = '';
+
+      comparisonsEl.innerText = `${result.comparisons} ${result.comparisons === 1 ? 'comparison' : 'comparisons'}`;
+
+      result.steps.forEach(step => {
+        const div = document.createElement('div');
+        if (step.dir === 'MATCH') {
+          div.className = 'text-emerald-400 font-bold';
+          div.innerHTML = `✓ Step ${step.comp}: "${step.node}" == "${word}" (FOUND!)`;
+        } else if (step.dir === 'LEFT') {
+          div.innerHTML = `↳ Step ${step.comp}: "${word}" &lt; "${step.node}" &rarr; go LEFT`;
+        } else {
+          div.innerHTML = `↳ Step ${step.comp}: "${word}" &gt; "${step.node}" &rarr; go RIGHT`;
+        }
+        stepsContainer.appendChild(div);
+      });
+
+      if (!result.found) {
+        const notFoundDiv = document.createElement('div');
+        notFoundDiv.className = 'text-rose-400 font-bold mt-1';
+        notFoundDiv.innerHTML = `✗ Reached null leaf node &mdash; "${word}" is NOT in dictionary.`;
+        stepsContainer.appendChild(notFoundDiv);
+      }
+    }
+
+    function handleRebalance() {
+      const allWords = dictionaryBST.inorder();
+      dictionaryBST.buildBalanced(allWords);
+      updateStatsUI();
+      renderBSTGraph();
+      showToast('BST rebalanced via inorder traversal! Tree height optimized.', 'success');
+    }
+
+    /* ==========================================================================
+       8. UTILITY & EVENT LISTENERS
+       ========================================================================== */
+
+    function escapeHtml(string) {
+      const entityMap = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      };
+      return String(string).replace(/[&<>"']/g, s => entityMap[s]);
+    }
+
+    function showToast(message, type = 'info') {
+      const toast = document.getElementById('op-notification');
+      toast.innerText = message;
+      toast.classList.remove('hidden', 'bg-emerald-100', 'text-emerald-800', 'border-emerald-200', 'bg-rose-100', 'text-rose-800', 'border-rose-200', 'bg-indigo-100', 'text-indigo-800', 'border-indigo-200');
+
+      if (type === 'success') {
+        toast.classList.add('bg-emerald-100', 'text-emerald-800', 'border', 'border-emerald-200');
+      } else if (type === 'error') {
+        toast.classList.add('bg-rose-100', 'text-rose-800', 'border', 'border-rose-200');
+      } else {
+        toast.classList.add('bg-indigo-100', 'text-indigo-800', 'border', 'border-indigo-200');
+      }
+
+      clearTimeout(window.toastTimer);
+      window.toastTimer = setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 4000);
+    }
+
+    function updateWordAndCharCount() {
+      const text = document.getElementById('input-text').value;
+      document.getElementById('char-count').innerText = text.length;
+      const words = text.trim().match(/\b[a-zA-Z]+\b/g) || [];
+      document.getElementById('input-word-count').innerText = words.length;
+    }
+
+    // Attach Event Listeners
+    window.addEventListener('DOMContentLoaded', () => {
+      // 1. Initialize BST with dictionary
+      initDictionary();
+
+      const textarea = document.getElementById('input-text');
+
+      // 2. Sample text buttons
+      document.getElementById('btn-sample-1').addEventListener('click', () => {
+        textarea.value = "Computers and programing are powerfull tools for sciens and technolagy. A binary serch tree orginizes data efficently so words can be verifyed without unnecessary delays.";
+        updateWordAndCharCount();
+        performSpellCheck();
+      });
+
+      document.getElementById('btn-sample-2').addEventListener('click', () => {
+        textarea.value = "Algoritm design is an importent subject in softwar engineering. A binary search tree stores unique keys in lexicographical sequence, enabling fast logariphmic retrieval.";
+        updateWordAndCharCount();
+        performSpellCheck();
+      });
+
+      document.getElementById('btn-clear').addEventListener('click', () => {
+        textarea.value = '';
+        updateWordAndCharCount();
+        performSpellCheck();
+      });
+
+      // 3. Text input typing
+      textarea.addEventListener('input', () => {
+        updateWordAndCharCount();
+      });
+
+      // 4. Check spelling button
+      document.getElementById('btn-check-spelling').addEventListener('click', () => {
+        performSpellCheck();
+      });
+
+      // 5. BST Operations
+      document.getElementById('btn-add-word').addEventListener('click', handleAddWord);
+      document.getElementById('input-add-word').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') handleAddWord();
+      });
+
+      document.getElementById('btn-delete-word').addEventListener('click', handleDeleteWord);
+      document.getElementById('input-delete-word').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') handleDeleteWord();
+      });
+
+      document.getElementById('btn-search-word').addEventListener('click', handleSearchTrace);
+      document.getElementById('input-search-word').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') handleSearchTrace();
+      });
+
+      document.getElementById('btn-rebalance').addEventListener('click', handleRebalance);
+
+      // 6. Pre-fill with sample 1 on initial load for demonstration
+      document.getElementById('btn-sample-1').click();
+    });
+  </script>
+</body>
+</html>
