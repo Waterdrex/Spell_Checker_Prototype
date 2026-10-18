@@ -1,22 +1,33 @@
-<!DOCTYPE html> 
-<html lang="en">
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Spell Checker Using Binary Search Tree (BST) | DSA Project</title>
+
+  <!-- Prevent Theme Flicker Script -->
+  <script>
+    if (localStorage.getItem('bst_theme') === 'dark' || (!('bst_theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  </script>
+
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Google Fonts Inter -->
+  <!-- Google Fonts: Inter & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
   <script>
     tailwind.config = {
       darkMode: 'class',
       theme: {
         extend: {
           fontFamily: {
-            sans: ['Inter', 'sans-serif'],
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
             mono: ['"JetBrains Mono"', 'monospace'],
           },
           colors: {
@@ -31,12 +42,20 @@
               700: '#4338ca',
               800: '#3730a3',
               900: '#312e81',
+              950: '#1e1b4b',
             }
+          },
+          boxShadow: {
+            'card': '0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05)',
+            'card-hover': '0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.07)',
+            'glow-indigo': '0 0 20px -3px rgba(99, 102, 241, 0.35)',
+            'glow-emerald': '0 0 20px -3px rgba(16, 185, 129, 0.35)',
           }
         }
       }
     }
   </script>
+
   <style>
     /* Custom scrollbars */
     ::-webkit-scrollbar {
@@ -48,83 +67,153 @@
     }
     ::-webkit-scrollbar-thumb {
       background: #cbd5e1;
-      border-radius: 4px;
+      border-radius: 9999px;
     }
     ::-webkit-scrollbar-thumb:hover {
       background: #94a3b8;
     }
+    .dark ::-webkit-scrollbar-track {
+      background: #090d16;
+    }
+    .dark ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+    }
+    .dark ::-webkit-scrollbar-thumb:hover {
+      background: #334155;
+    }
 
+    /* Elegant Misspelled word highlight */
     .misspelled-highlight {
       background-color: #fee2e2;
-      color: #b91c1c;
-      border-bottom: 2px dashed #ef4444;
-      border-radius: 3px;
+      color: #991b1b;
+      text-decoration: underline wavy #ef4444 1.5px;
+      text-underline-offset: 3px;
+      border-radius: 4px;
       padding: 1px 4px;
       cursor: pointer;
       font-weight: 500;
-      transition: all 0.15s ease-in-out;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .dark .misspelled-highlight {
+      background-color: rgba(239, 68, 68, 0.16);
+      color: #fca5a5;
+      text-decoration: underline wavy #f87171 1.5px;
+      text-underline-offset: 3px;
     }
     .misspelled-highlight:hover {
-      background-color: #fca5a5;
+      background-color: #fecaca;
       color: #7f1d1d;
+      transform: translateY(-0.5px);
+    }
+    .dark .misspelled-highlight:hover {
+      background-color: rgba(239, 68, 68, 0.28);
+      color: #fee2e2;
     }
 
+    /* Correct word highlight */
     .correct-highlight {
-      background-color: #dcfce7;
-      color: #15803d;
-      border-radius: 3px;
+      background-color: #ecfdf5;
+      color: #065f46;
+      border-radius: 4px;
       padding: 1px 3px;
-      transition: all 0.15s ease-in-out;
+      transition: background-color 0.15s ease;
+    }
+    .dark .correct-highlight {
+      background-color: rgba(16, 185, 129, 0.12);
+      color: #6ee7b7;
     }
     .correct-highlight:hover {
-      background-color: #bbf7d0;
+      background-color: #d1fae5;
+    }
+    .dark .correct-highlight:hover {
+      background-color: rgba(16, 185, 129, 0.22);
     }
 
     /* Tree SVG styling */
     .tree-node circle {
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: transform 0.2s ease, filter 0.2s ease;
+      transform-box: fill-box;
+      transform-origin: center;
     }
     .tree-node:hover circle {
-      fill: #4f46e5;
-      filter: drop-shadow(0 4px 6px rgba(79, 70, 229, 0.4));
+      transform: scale(1.15);
+      filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.7));
     }
     .tree-node text {
       pointer-events: none;
       font-family: 'JetBrains Mono', monospace;
     }
+
+    /* Canvas Blueprint Grid Pattern */
+    .canvas-grid {
+      background-color: #070b14;
+      background-image: 
+        radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+        linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 24px 24px, 120px 120px, 120px 120px;
+    }
   </style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col font-sans antialiased selection:bg-brand-500 selection:text-white">
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col font-sans antialiased selection:bg-brand-500 selection:text-white transition-colors duration-200">
 
   <!-- Header -->
-  <header class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white border-b border-indigo-900/40 shadow-lg sticky top-0 z-40 backdrop-blur">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap items-center justify-between gap-4">
-      <div class="flex items-center space-x-3">
-        <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-md shadow-indigo-500/20 text-white font-mono font-bold text-lg">
+  <header class="bg-slate-900/95 dark:bg-slate-950/90 text-white border-b border-slate-800/80 shadow-md sticky top-0 z-40 backdrop-blur-md transition-colors duration-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-3">
+      
+      <!-- Brand & Project Title -->
+      <div class="flex items-center space-x-3.5">
+        <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 via-indigo-600 to-purple-600 flex items-center justify-center shadow-md shadow-indigo-500/25 text-white font-mono font-bold text-base ring-1 ring-white/20">
           BST
         </div>
         <div>
-          <h1 class="text-lg sm:text-xl font-bold tracking-tight text-white flex items-center gap-2">
-            Spell Checker Using Binary Search Tree
-            <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-500/30 text-indigo-200 border border-indigo-400/30 font-medium">DSA College Project</span>
-          </h1>
-          <p class="text-xs text-indigo-200/80">Efficient dictionary lookup, spell diagnosis & edit-distance suggestions</p>
+          <div class="flex items-center gap-2">
+            <h1 class="text-base sm:text-lg font-bold tracking-tight text-white flex items-center gap-2">
+              Spell Checker Using Binary Search Tree
+            </h1>
+            <span class="hidden sm:inline-flex text-[11px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-400/30 font-medium">
+              DSA College Project
+            </span>
+          </div>
+          <p class="text-xs text-slate-400 mt-0.5">Dictionary lookup, logarithmic search & edit-distance diagnosis</p>
         </div>
       </div>
 
-      <!-- Quick Metrics badges -->
-      <div class="flex items-center space-x-3 text-xs font-mono">
-        <div class="px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/80 flex items-center space-x-2">
-          <span class="text-slate-400">Time Complexity:</span>
-          <span class="text-emerald-400 font-semibold">O(h)</span>
+      <!-- Header Action Items: Metrics & Theme Toggle -->
+      <div class="flex items-center space-x-2.5 text-xs font-mono">
+        <!-- Time complexity badge -->
+        <div class="hidden sm:flex px-2.5 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/80 items-center space-x-2">
+          <span class="text-slate-400 font-sans text-[11px]">Complexity:</span>
+          <span class="text-emerald-400 font-semibold font-mono">O(h)</span>
         </div>
-        <div class="px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/80 flex items-center space-x-2">
-          <span class="text-slate-400">Dictionary:</span>
-          <span id="header-dict-count" class="text-indigo-300 font-semibold">Loading...</span>
+
+        <!-- Dictionary Size badge -->
+        <div class="px-2.5 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/80 flex items-center space-x-2">
+          <span class="text-slate-400 font-sans text-[11px] hidden sm:inline">Dictionary:</span>
+          <span id="header-dict-count" class="text-indigo-300 font-semibold font-mono">Loading...</span>
         </div>
-        <a href="#visualizer-section" class="hidden md:inline-flex items-center px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition font-sans text-xs font-medium shadow-sm">
+
+        <!-- Light / Dark Mode Toggle Button -->
+        <button
+          id="btn-theme-toggle"
+          class="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 border border-slate-700/80 text-slate-300 hover:text-white transition-all shadow-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          title="Toggle Light / Dark Mode"
+          aria-label="Toggle theme"
+        >
+          <!-- Sun Icon (visible in dark mode) -->
+          <svg id="icon-theme-sun" class="w-4 h-4 hidden dark:block text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+          </svg>
+          <!-- Moon Icon (visible in light mode) -->
+          <svg id="icon-theme-moon" class="w-4 h-4 block dark:hidden text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+          </svg>
+        </button>
+
+        <!-- View Tree anchor -->
+        <a href="#visualizer-section" class="hidden md:inline-flex items-center px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition font-sans text-xs font-medium shadow-xs">
           <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"></path></svg>
-          View Tree Graph
+          Tree Graph
         </a>
       </div>
     </div>
@@ -133,49 +222,55 @@
   <!-- Metric Overview Bar -->
   <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 w-full">
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-      <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+
+      <!-- Metric 1: BST Size -->
+      <div class="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-card hover:shadow-card-hover transition-all flex items-center justify-between">
         <div>
-          <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">BST Words Count</p>
-          <h3 id="stat-tree-size" class="text-2xl font-bold text-slate-800 mt-1">0</h3>
-          <p class="text-[11px] text-slate-400 mt-0.5">Total unique stored keys</p>
+          <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">BST Words Count</p>
+          <h3 id="stat-tree-size" class="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-white mt-1 font-mono">0</h3>
+          <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">Total unique stored keys</p>
         </div>
-        <div class="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-mono text-base font-bold">
+        <div class="w-11 h-11 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/50 flex items-center justify-center font-mono text-base font-bold shadow-xs">
           N
         </div>
       </div>
 
-      <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+      <!-- Metric 2: Actual Tree Height -->
+      <div class="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-card hover:shadow-card-hover transition-all flex items-center justify-between">
         <div>
-          <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Actual Tree Height</p>
-          <h3 id="stat-tree-height" class="text-2xl font-bold text-indigo-600 mt-1">0</h3>
-          <p id="stat-tree-ideal" class="text-[11px] text-slate-400 mt-0.5">Ideal balanced: ~11 levels</p>
+          <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Actual Tree Height</p>
+          <h3 id="stat-tree-height" class="text-2xl sm:text-3xl font-bold text-indigo-600 dark:text-indigo-400 mt-1 font-mono">0</h3>
+          <p id="stat-tree-ideal" class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">Ideal balanced: ~11 levels</p>
         </div>
-        <div class="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-mono text-base font-bold">
+        <div class="w-11 h-11 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/50 flex items-center justify-center font-mono text-base font-bold shadow-xs">
           h
         </div>
       </div>
 
-      <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+      <!-- Metric 3: Words Checked -->
+      <div class="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-card hover:shadow-card-hover transition-all flex items-center justify-between">
         <div>
-          <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Words Checked</p>
-          <h3 id="stat-words-checked" class="text-2xl font-bold text-slate-800 mt-1">0</h3>
-          <p id="stat-unique-words" class="text-[11px] text-slate-400 mt-0.5">0 unique words parsed</p>
+          <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Words Checked</p>
+          <h3 id="stat-words-checked" class="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-white mt-1 font-mono">0</h3>
+          <p id="stat-unique-words" class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">0 unique words parsed</p>
         </div>
-        <div class="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-mono text-base font-bold">
+        <div class="w-11 h-11 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/50 flex items-center justify-center font-mono text-base font-bold shadow-xs">
           W
         </div>
       </div>
 
-      <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+      <!-- Metric 4: Misspelled Count -->
+      <div class="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-card hover:shadow-card-hover transition-all flex items-center justify-between">
         <div>
-          <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Misspelled Words</p>
-          <h3 id="stat-misspelled-count" class="text-2xl font-bold text-rose-600 mt-1">0</h3>
-          <p id="stat-accuracy" class="text-[11px] text-slate-400 mt-0.5">Awaiting check</p>
+          <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Misspelled Words</p>
+          <h3 id="stat-misspelled-count" class="text-2xl sm:text-3xl font-bold text-rose-600 dark:text-rose-400 mt-1 font-mono">0</h3>
+          <p id="stat-accuracy" class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">Awaiting check</p>
         </div>
-        <div class="w-10 h-10 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center font-mono text-base font-bold">
+        <div class="w-11 h-11 rounded-xl bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/50 flex items-center justify-center font-mono text-base font-bold shadow-xs">
           !
         </div>
       </div>
+
     </div>
   </section>
 
@@ -187,20 +282,20 @@
       <div class="lg:col-span-7 space-y-6">
 
         <!-- Editor Card -->
-        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden flex flex-col">
-          <div class="px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2 bg-slate-50/50">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-card flex flex-col transition-colors">
+          <div class="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2 bg-slate-50/70 dark:bg-slate-900/60 rounded-t-2xl">
             <div class="flex items-center space-x-2">
-              <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block"></span>
-              <h2 class="font-semibold text-slate-800 text-sm">Text Input & Analysis Area</h2>
+              <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block ring-4 ring-indigo-500/10"></span>
+              <h2 class="font-semibold text-slate-800 dark:text-slate-200 text-sm">Text Input & Analysis Area</h2>
             </div>
             <div class="flex items-center space-x-2">
-              <button id="btn-sample-1" class="text-xs px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 transition shadow-xs font-medium">
+              <button id="btn-sample-1" class="text-xs px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition shadow-xs font-medium">
                 Sample 1 (Errors)
               </button>
-              <button id="btn-sample-2" class="text-xs px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 transition shadow-xs font-medium">
+              <button id="btn-sample-2" class="text-xs px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition shadow-xs font-medium">
                 Sample 2 (Tech)
               </button>
-              <button id="btn-clear" class="text-xs px-2.5 py-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition font-medium">
+              <button id="btn-clear" class="text-xs px-2.5 py-1.5 rounded-lg text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition font-medium">
                 Clear
               </button>
             </div>
@@ -211,20 +306,20 @@
             <textarea
               id="input-text"
               rows="6"
-              class="w-full text-slate-800 placeholder-slate-400 border border-slate-200 rounded-xl p-3.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition font-sans text-sm leading-relaxed resize-y"
+              class="w-full text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 bg-white dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:focus:ring-indigo-500/30 focus:border-indigo-500 dark:focus:border-indigo-500 transition font-sans text-sm leading-relaxed resize-y"
               placeholder="Type or paste any sentence, paragraph, or essay here to check spelling using the Binary Search Tree dictionary..."
             ></textarea>
 
-            <div class="mt-4 flex flex-wrap items-center justify-between gap-3 pt-2">
-              <div class="flex items-center space-x-4 text-xs text-slate-500">
-                <span>Characters: <strong id="char-count" class="text-slate-700">0</strong></span>
-                <span>Words: <strong id="input-word-count" class="text-slate-700">0</strong></span>
+            <div class="mt-4 flex flex-wrap items-center justify-between gap-3 pt-1">
+              <div class="flex items-center space-x-4 text-xs text-slate-500 dark:text-slate-400 font-mono">
+                <span>Characters: <strong id="char-count" class="text-slate-700 dark:text-slate-200">0</strong></span>
+                <span>Words: <strong id="input-word-count" class="text-slate-700 dark:text-slate-200">0</strong></span>
               </div>
 
               <div class="flex items-center space-x-3">
                 <button
                   id="btn-check-spelling"
-                  class="inline-flex items-center px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-medium text-sm transition shadow-md shadow-indigo-600/20 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                  class="inline-flex items-center px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-medium text-sm transition-all shadow-md shadow-indigo-600/20 hover:shadow-indigo-600/30 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
                 >
                   <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                   Check Spelling
@@ -235,63 +330,63 @@
         </div>
 
         <!-- Highlighted Results Display Card -->
-        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-          <div class="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-card overflow-hidden transition-colors">
+          <div class="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/70 dark:bg-slate-900/60">
             <div class="flex items-center space-x-2">
-              <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-              <h2 class="font-semibold text-slate-800 text-sm">Visual Verification & Diagnosis</h2>
+              <svg class="w-4 h-4 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+              <h2 class="font-semibold text-slate-800 dark:text-slate-200 text-sm">Visual Verification & Diagnosis</h2>
             </div>
-            <div class="flex items-center space-x-3 text-xs">
-              <span class="inline-flex items-center text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 font-medium">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span>Correct (Found in BST)
+            <div class="flex items-center space-x-2.5 text-xs">
+              <span class="inline-flex items-center text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800/60 font-medium text-[11px]">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span>Correct
               </span>
-              <span class="inline-flex items-center text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200 font-medium">
-                <span class="w-1.5 h-1.5 rounded-full bg-rose-500 mr-1.5"></span>Misspelled (Click to inspect)
+              <span class="inline-flex items-center text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 px-2 py-0.5 rounded-md border border-rose-200 dark:border-rose-800/60 font-medium text-[11px]">
+                <span class="w-1.5 h-1.5 rounded-full bg-rose-500 mr-1.5"></span>Misspelled
               </span>
             </div>
           </div>
 
-          <div class="p-5 min-h-[140px] max-h-[300px] overflow-y-auto">
-            <div id="highlighted-output" class="text-sm leading-relaxed text-slate-700 whitespace-pre-wrap">
-              <span class="text-slate-400 italic">Click "Check Spelling" above or type text to see highlighted results here. Misspelled words will be underlined in red and correct words will be verified against the Binary Search Tree.</span>
+          <div class="p-5 min-h-[140px] max-h-[300px] overflow-y-auto bg-slate-50/30 dark:bg-slate-950/30">
+            <div id="highlighted-output" class="text-sm leading-relaxed text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
+              <span class="text-slate-400 dark:text-slate-500 italic">Click "Check Spelling" above or type text to see highlighted results here. Misspelled words will be underlined in red and correct words will be verified against the Binary Search Tree.</span>
             </div>
           </div>
 
-          <div class="px-5 py-2.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+          <div class="px-5 py-2.5 bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
             <span id="diagnostic-message">Ready for spell checking</span>
-            <span class="font-mono text-[11px] text-slate-400">BST Search: O(log n) avg</span>
+            <span class="font-mono text-[11px] text-slate-400 dark:text-slate-500">BST Search: O(log n) avg</span>
           </div>
         </div>
 
         <!-- BST Visualization Section -->
-        <div id="visualizer-section" class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-          <div class="px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 bg-slate-50/50">
+        <div id="visualizer-section" class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-card overflow-hidden transition-colors">
+          <div class="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 bg-slate-50/70 dark:bg-slate-900/60">
             <div>
-              <h2 class="font-semibold text-slate-800 text-sm flex items-center gap-2">
-                <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11"></path></svg>
+              <h2 class="font-semibold text-slate-800 dark:text-slate-200 text-sm flex items-center gap-2">
+                <svg class="w-4 h-4 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11"></path></svg>
                 BST Architecture & Path Visualizer
               </h2>
-              <p class="text-xs text-slate-500 mt-0.5">Live visualizer with search path tracing and depth inspection</p>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Top 4 levels view & dynamic full search path inspection</p>
             </div>
             <div class="flex items-center space-x-2">
               <!-- View mode toggle -->
-              <div class="inline-flex rounded-lg bg-slate-200/70 p-0.5 text-xs font-medium">
-                <button id="btn-view-overview" class="px-2.5 py-1 rounded-md bg-white text-slate-800 shadow-xs font-semibold transition">
+              <div class="inline-flex rounded-xl bg-slate-200/80 dark:bg-slate-800 p-0.5 text-xs font-medium">
+                <button id="btn-view-overview" class="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-xs font-semibold transition">
                   Top 4 Levels
                 </button>
-                <button id="btn-view-trace" class="px-2.5 py-1 rounded-md text-slate-600 hover:text-slate-900 transition">
+                <button id="btn-view-trace" class="px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition">
                   Full Search Path (Deep)
                 </button>
               </div>
-              <button id="btn-rebalance" class="text-xs px-3 py-1.5 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 transition font-medium flex items-center">
+              <button id="btn-rebalance" class="text-xs px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition font-medium flex items-center active:scale-95 shadow-xs">
                 <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                 Rebalance Tree
               </button>
             </div>
           </div>
 
-          <div class="p-4 bg-slate-900 overflow-x-auto relative">
-            <div class="absolute top-3 left-4 text-[11px] font-mono text-slate-400 bg-slate-800/80 px-2 py-1 rounded border border-slate-700 flex items-center gap-2 z-10">
+          <div class="p-4 canvas-grid overflow-x-auto relative rounded-b-none border-b border-slate-800">
+            <div class="absolute top-3 left-4 text-[11px] font-mono text-slate-300 bg-slate-900/90 backdrop-blur-md px-2.5 py-1 rounded-md border border-slate-700/80 flex items-center gap-2 z-10 shadow-xs">
               <span id="visualizer-status-badge">Canvas • Top 4 Levels</span>
             </div>
             <svg id="bst-svg" class="w-full min-w-[620px] h-[300px]" viewBox="0 0 800 300" preserveAspectRatio="xMidYMid meet">
@@ -299,13 +394,13 @@
             </svg>
           </div>
 
-          <div class="px-5 py-3 bg-slate-50 border-t border-slate-100 flex flex-wrap items-center justify-between text-xs text-slate-600 gap-2">
+          <div class="px-5 py-3 bg-slate-50 dark:bg-slate-900/90 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between text-xs text-slate-600 dark:text-slate-400 gap-2">
             <div class="flex items-center space-x-4">
-              <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-indigo-500 mr-1.5"></span> Normal Node</span>
-              <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-amber-400 mr-1.5"></span> Traced Path Node</span>
-              <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-emerald-400 mr-1.5"></span> Target Found</span>
+              <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-indigo-500 mr-1.5 shadow-xs"></span> Normal Node</span>
+              <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-amber-400 mr-1.5 shadow-xs"></span> Traced Path</span>
+              <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-emerald-400 mr-1.5 shadow-xs"></span> Target Match</span>
             </div>
-            <span id="visualizer-hint" class="text-slate-400 italic">Nodes at level &gt; 4 shown in "Full Search Path" mode</span>
+            <span id="visualizer-hint" class="text-slate-400 dark:text-slate-500 italic">Nodes at level &gt; 4 shown in "Full Search Path" mode</span>
           </div>
         </div>
 
@@ -315,23 +410,25 @@
       <div class="lg:col-span-5 space-y-6">
 
         <!-- Misspelled Words & Suggestions Side Panel -->
-        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden flex flex-col">
-          <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-card overflow-hidden flex flex-col transition-colors">
+          <div class="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/70 dark:bg-slate-900/60">
             <div class="flex items-center space-x-2">
-              <span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span>
-              <h2 class="font-semibold text-slate-800 text-sm">Misspelled Words & Suggestions</h2>
+              <span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block ring-4 ring-rose-500/10"></span>
+              <h2 class="font-semibold text-slate-800 dark:text-slate-200 text-sm">Misspelled Words & Suggestions</h2>
             </div>
-            <span id="badge-errors-count" class="text-xs px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 font-semibold">
+            <span id="badge-errors-count" class="text-xs px-2.5 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400 border border-rose-200/80 dark:border-rose-900/60 font-semibold font-mono">
               0 Errors
             </span>
           </div>
 
-          <div id="suggestions-panel" class="p-5 max-h-[380px] overflow-y-auto space-y-4">
+          <div id="suggestions-panel" class="p-5 max-h-[380px] overflow-y-auto space-y-3">
             <!-- Empty state -->
-            <div id="suggestions-empty" class="text-center py-10 text-slate-400">
-              <svg class="w-12 h-12 mx-auto text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-              <p class="text-sm font-medium text-slate-600">No spelling mistakes detected!</p>
-              <p class="text-xs text-slate-400 mt-1">Run a spell check to view misspelled words and up to 5 smart suggestions for each word.</p>
+            <div id="suggestions-empty" class="text-center py-10 text-slate-400 dark:text-slate-500">
+              <div class="w-12 h-12 mx-auto rounded-full bg-slate-100 dark:bg-slate-800/80 flex items-center justify-center text-slate-400 dark:text-slate-500 mb-3">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              </div>
+              <p class="text-sm font-medium text-slate-700 dark:text-slate-300">No spelling mistakes detected!</p>
+              <p class="text-xs text-slate-400 dark:text-slate-500 mt-1 max-w-xs mx-auto">Run a spell check to view misspelled words and up to 5 smart suggestions for each word.</p>
             </div>
 
             <!-- List rendered dynamically -->
@@ -339,35 +436,35 @@
             </div>
           </div>
 
-          <div class="p-3 bg-slate-50 border-t border-slate-100 text-[11px] text-slate-500 text-center">
-            Click any suggestion chip to automatically replace the misspelled word in your text.
+          <div class="p-3 bg-slate-50 dark:bg-slate-950/40 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400 text-center font-medium">
+            Click any suggestion chip to automatically replace the word in your text.
           </div>
         </div>
 
         <!-- Dictionary Operations: Add / Delete Custom Word -->
-        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-          <div class="px-5 py-4 border-b border-slate-100 bg-slate-50/50">
-            <h2 class="font-semibold text-slate-800 text-sm flex items-center gap-2">
-              <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-card overflow-hidden transition-colors">
+          <div class="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60">
+            <h2 class="font-semibold text-slate-800 dark:text-slate-200 text-sm flex items-center gap-2">
+              <svg class="w-4 h-4 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
               BST Dictionary Operations
             </h2>
-            <p class="text-xs text-slate-500 mt-0.5">Directly test dynamic BST node insertion and deletion algorithms</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Test dynamic BST node insertion, deletion & traversal</p>
           </div>
 
           <div class="p-5 space-y-4">
             <!-- Add word form -->
             <div>
-              <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Add Custom Word to BST</label>
+              <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">Add Custom Word to BST</label>
               <div class="flex gap-2">
                 <input
                   type="text"
                   id="input-add-word"
                   placeholder="e.g., algorithm, kubernetes"
-                  class="flex-1 text-sm border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                  class="flex-1 text-sm bg-white dark:bg-slate-950/70 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:focus:ring-indigo-500/30 focus:border-indigo-500 dark:focus:border-indigo-500 transition"
                 />
                 <button
                   id="btn-add-word"
-                  class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl text-xs font-semibold transition shadow-xs flex items-center"
+                  class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition-all shadow-xs active:scale-95 flex items-center"
                 >
                   <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
                   Insert
@@ -377,17 +474,17 @@
 
             <!-- Delete word form -->
             <div>
-              <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Delete Word from BST</label>
+              <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">Delete Word from BST</label>
               <div class="flex gap-2">
                 <input
                   type="text"
                   id="input-delete-word"
                   placeholder="e.g., banana, test"
-                  class="flex-1 text-sm border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"
+                  class="flex-1 text-sm bg-white dark:bg-slate-950/70 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2 focus:outline-none focus:ring-2 focus:ring-rose-500/20 dark:focus:ring-rose-500/30 focus:border-rose-500 dark:focus:border-rose-500 transition"
                 />
                 <button
                   id="btn-delete-word"
-                  class="px-4 py-2 bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white rounded-xl text-xs font-semibold transition shadow-xs flex items-center"
+                  class="px-4 py-2 bg-rose-600 hover:bg-rose-500 active:bg-rose-700 text-white rounded-xl text-xs font-semibold transition-all shadow-xs active:scale-95 flex items-center"
                 >
                   <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                   Delete
@@ -396,46 +493,46 @@
             </div>
 
             <!-- Lookup & Path Trace -->
-            <div class="pt-2 border-t border-slate-100">
-              <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Trace BST Search Path (Live Demo)</label>
+            <div class="pt-2 border-t border-slate-100 dark:border-slate-800">
+              <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">Trace BST Search Path (Live Demo)</label>
               <div class="flex gap-2">
                 <input
                   type="text"
                   id="input-search-word"
                   placeholder="Test lookup e.g. computer"
-                  class="flex-1 text-sm border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                  class="flex-1 text-sm bg-white dark:bg-slate-950/70 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:focus:ring-indigo-500/30 focus:border-indigo-500 dark:focus:border-indigo-500 transition"
                 />
                 <button
                   id="btn-search-word"
-                  class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold transition shadow-xs flex items-center"
+                  class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white rounded-xl text-xs font-semibold transition-all shadow-xs active:scale-95 flex items-center"
                 >
                   Trace
                 </button>
               </div>
 
               <!-- Search Trace Result Output -->
-              <div id="search-trace-box" class="mt-2.5 p-3 rounded-xl bg-slate-900 text-slate-200 font-mono text-xs hidden">
-                <div class="text-[11px] text-indigo-400 mb-1 flex items-center justify-between">
-                  <span>BST Traversal Steps</span>
+              <div id="search-trace-box" class="mt-3 p-3.5 rounded-xl bg-slate-900 dark:bg-slate-950 text-slate-200 font-mono text-xs border border-slate-800 hidden shadow-inner">
+                <div class="text-[11px] text-indigo-400 dark:text-indigo-300 mb-1.5 flex items-center justify-between border-b border-slate-800 pb-1.5">
+                  <span class="font-semibold">BST Traversal Sequence</span>
                   <span id="search-trace-comparisons" class="text-emerald-400 font-bold"></span>
                 </div>
-                <div id="search-trace-steps" class="space-y-1 text-slate-300 break-words leading-relaxed"></div>
+                <div id="search-trace-steps" class="space-y-1 text-slate-300 break-words leading-relaxed max-h-[180px] overflow-y-auto pr-1"></div>
               </div>
             </div>
 
           </div>
 
           <!-- Notification Toast Box -->
-          <div id="op-notification" class="mx-5 mb-4 p-2.5 rounded-lg text-xs font-medium hidden"></div>
+          <div id="op-notification" class="mx-5 mb-4 p-2.5 rounded-xl text-xs font-medium hidden transition-all"></div>
         </div>
 
         <!-- DSA Project Info Card -->
-        <div class="bg-gradient-to-br from-indigo-900 to-slate-900 text-white rounded-2xl p-5 shadow-sm border border-indigo-800/40">
-          <div class="flex items-center space-x-2 text-indigo-300 text-xs font-semibold tracking-wider uppercase mb-2">
+        <div class="bg-gradient-to-br from-indigo-950 via-slate-900 to-slate-950 text-white rounded-2xl p-5 shadow-card border border-indigo-900/40">
+          <div class="flex items-center space-x-2 text-indigo-300 text-xs font-semibold tracking-wider uppercase mb-2.5">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             DSA Technical Highlights
           </div>
-          <ul class="text-xs text-indigo-100/90 space-y-2 leading-relaxed">
+          <ul class="text-xs text-slate-300 space-y-2 leading-relaxed">
             <li class="flex items-start">
               <span class="text-indigo-400 mr-2 font-bold">•</span>
               <span><strong>BST Dictionary Storage:</strong> Inorder traversal yields lexicographically sorted words; search, insertion, and deletion operate in O(h) time.</span>
@@ -456,10 +553,10 @@
   </main>
 
   <!-- Footer -->
-  <footer class="bg-white border-t border-slate-200 mt-12 py-6 text-center text-xs text-slate-500">
+  <footer class="bg-white dark:bg-slate-900 border-t border-slate-200/90 dark:border-slate-800 mt-12 py-6 text-center text-xs text-slate-500 dark:text-slate-400 transition-colors">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2">
-      <p>College Data Structures & Algorithms (DSA) Project: <strong>Spell Checker Using Binary Search Tree</strong></p>
-      <p class="font-mono text-slate-400 text-[11px]">Vanilla JavaScript • HTML5 • Tailwind CSS • Pure In-Memory BST</p>
+      <p>College Data Structures & Algorithms (DSA) Project: <strong class="text-slate-700 dark:text-slate-200">Spell Checker Using Binary Search Tree</strong></p>
+      <p class="font-mono text-slate-400 dark:text-slate-500 text-[11px]">Vanilla JavaScript • HTML5 • Tailwind CSS • Pure In-Memory BST</p>
     </div>
   </footer>
 
@@ -483,10 +580,6 @@
         this.size = 0;
       }
 
-      /**
-       * Inserts a word into the BST.
-       * Returns true if newly inserted, false if already exists.
-       */
       insert(word) {
         const cleanWord = word.toLowerCase().trim();
         if (!cleanWord) return false;
@@ -500,7 +593,7 @@
         let curr = this.root;
         while (curr) {
           if (cleanWord === curr.word) {
-            return false; // Word already in dictionary
+            return false;
           } else if (cleanWord < curr.word) {
             if (curr.left === null) {
               curr.left = new BSTNode(cleanWord);
@@ -520,10 +613,6 @@
         return false;
       }
 
-      /**
-       * Searches for a word in the BST.
-       * Returns boolean.
-       */
       search(word) {
         const cleanWord = word.toLowerCase().trim();
         if (!cleanWord) return false;
@@ -541,9 +630,6 @@
         return false;
       }
 
-      /**
-       * Searches for a word and records step-by-step traversal path.
-       */
       searchWithPath(word) {
         const cleanWord = word.toLowerCase().trim();
         const steps = [];
@@ -567,10 +653,6 @@
         return { found: false, steps, comparisons };
       }
 
-      /**
-       * Deletes a word from the BST.
-       * Returns boolean indicating whether word was deleted.
-       */
       delete(word) {
         const cleanWord = word.toLowerCase().trim();
         if (!cleanWord) return false;
@@ -587,19 +669,18 @@
             node.right = removeNode(node.right, key);
             return node;
           } else {
-            // Found target node
             deleted = true;
 
-            // Case 1: Leaf node (no children)
+            // Case 1: Leaf node
             if (node.left === null && node.right === null) {
               return null;
             }
 
-            // Case 2: Only one child
+            // Case 2: One child
             if (node.left === null) return node.right;
             if (node.right === null) return node.left;
 
-            // Case 3: Two children - replace with inorder successor (min of right subtree)
+            // Case 3: Two children
             let successor = node.right;
             while (successor.left !== null) {
               successor = successor.left;
@@ -617,17 +698,11 @@
         return deleted;
       }
 
-      /**
-       * Calculates tree height (depth of longest branch).
-       */
       getHeight(node = this.root) {
         if (node === null) return 0;
         return 1 + Math.max(this.getHeight(node.left), this.getHeight(node.right));
       }
 
-      /**
-       * Inorder traversal collecting all words into an array (sorted order).
-       */
       inorder() {
         const result = [];
         const traverse = (node) => {
@@ -640,9 +715,6 @@
         return result;
       }
 
-      /**
-       * Builds a balanced BST from a sorted array.
-       */
       buildBalanced(sortedWords) {
         const build = (start, end) => {
           if (start > end) return null;
@@ -662,13 +734,10 @@
        2. LEVENSHTEIN DISTANCE & SUGGESTION ALGORITHM
        ========================================================================== */
 
-    /**
-     * Computes the Levenshtein Distance between two strings.
-     */
     function levenshteinDistance(s1, s2) {
       const m = s1.length;
       const n = s2.length;
-      if (Math.abs(m - n) > 3) return 999; // Quick pruning
+      if (Math.abs(m - n) > 3) return 999;
 
       const dp = Array.from({ length: m + 1 }, () => new Int16Array(n + 1));
 
@@ -681,9 +750,9 @@
             dp[i][j] = dp[i - 1][j - 1];
           } else {
             dp[i][j] = 1 + Math.min(
-              dp[i - 1][j],     // deletion
-              dp[i][j - 1],     // insertion
-              dp[i - 1][j - 1]  // substitution
+              dp[i - 1][j],
+              dp[i][j - 1],
+              dp[i - 1][j - 1]
             );
           }
         }
@@ -691,9 +760,6 @@
       return dp[m][n];
     }
 
-    /**
-     * Finds up to 'maxSuggestions' closest words for a misspelled word.
-     */
     function getSuggestions(bst, word, maxSuggestions = 5) {
       const target = word.toLowerCase();
       const allWords = bst.inorder();
@@ -702,11 +768,10 @@
       for (let i = 0; i < allWords.length; i++) {
         const candidate = allWords[i];
         const lenDiff = Math.abs(candidate.length - target.length);
-        if (lenDiff > 2) continue; // Skip words with high length difference for speed
+        if (lenDiff > 2) continue;
 
         const dist = levenshteinDistance(target, candidate);
         if (dist <= 2) {
-          // Boost suggestions sharing the first character or sound
           let score = dist * 10;
           if (candidate[0] !== target[0]) score += 5;
           if (candidate[candidate.length - 1] !== target[target.length - 1]) score += 2;
@@ -714,7 +779,6 @@
         }
       }
 
-      // If we didn't find enough within distance 2, expand search to distance 3
       if (candidates.length < maxSuggestions) {
         for (let i = 0; i < allWords.length; i++) {
           const candidate = allWords[i];
@@ -732,7 +796,6 @@
         }
       }
 
-      // Sort by score (closest distance first), then alphabetically
       candidates.sort((a, b) => {
         if (a.score !== b.score) return a.score - b.score;
         return a.word.localeCompare(b.word);
@@ -747,14 +810,13 @@
 
     const DEFAULT_DICTIONARY = ["a","ability","able","about","above","abroad","absence","absolute","absolutely","academic","accept","acceptable","access","accident","accompany","according","account","accurate","accuse","achieve","achievement","acid","acquire","across","action","active","activity","actor","actress","actual","actually","adapt","addition","additional","address","adequate","adjust","administration","admire","admit","adopt","adult","advance","advanced","advantage","adventure","advertising","advice","advise","affair","affect","afford","afraid","after","afternoon","afterwards","again","against","age","agency","agent","aggressive","ago","agree","agreement","ahead","aid","aim","air","aircraft","airline","airport","alarm","album","alcohol","algorithm","alive","all","allow","almost","alone","along","already","also","alter","alternative","although","always","amazing","ambition","among","amount","analyse","analysis","analyst","ancient","and","anger","angle","angry","animal","anniversary","announce","announcement","annual","another","answer","anxiety","anxious","any","anybody","anymore","anyone","anything","anyway","anywhere","apart","apartment","apologize","apparent","apparently","appeal","appear","appearance","apple","application","apply","appoint","appointment","appreciate","approach","appropriate","approval","approve","approximate","architect","architecture","area","argue","argument","arise","arm","armed","army","around","arrange","arrangement","array","arrest","arrival","arrive","arrow","art","article","artist","artistic","as","ashamed","aside","ask","asleep","aspect","assess","assessment","assignment","assist","assistance","assistant","associate","association","assume","assumption","assure","at","athlete","atmosphere","attach","attack","attempt","attend","attention","attitude","attorney","attract","attraction","attractive","attribute","audience","author","authority","automatic","automatically","autumn","available","average","avoid","award","aware","awareness","away","awful","baby","back","background","bad","badly","bag","bake","balance","ball","ban","band","bank","bar","barrier","base","baseball","basic","basically","basis","basket","basketball","battery","battle","be","beach","bear","beat","beautiful","beauty","because","become","bed","bedroom","beer","before","begin","beginning","behalf","behave","behavior","behind","belief","believe","bell","belong","below","belt","bench","bend","beneath","benefit","beside","besides","best","bet","better","between","beyond","bicycle","bid","big","bike","bill","binary","biology","bird","birth","birthday","bit","bite","black","blade","blame","blank","blind","block","blood","blow","blue","board","boat","body","boil","bomb","bond","bone","book","boom","boot","border","bored","boring","born","borrow","boss","both","bother","bottle","bottom","boundary","bowl","box","boy","boyfriend","brain","branch","brand","brave","bread","break","breakfast","breast","breath","breathe","brick","bridge","brief","briefly","bright","brilliant","bring","broad","broadcast","brother","brown","brush","budget","build","builder","building","bullet","bunch","burn","burst","bury","bus","bush","business","busy","but","butter","button","buy","buyer","by","cabinet","cable","cake","calculate","calculation","calendar","call","calm","camera","camp","campaign","campus","can","cancel","cancer","candidate","candy","cap","capability","capable","capacity","capital","captain","capture","car","card","care","career","careful","carefully","carrier","carry","case","cash","cast","cat","catch","category","cause","cease","ceiling","celebrate","celebration","cell","center","central","century","ceremony","certain","certainly","chain","chair","chairman","challenge","chamber","champion","championship","chance","change","channel","chapter","character","characteristic","characterize","charge","charity","chart","chase","cheap","check","cheek","cheese","chemical","chest","chicken","chief","child","childhood","chocolate","choice","choose","church","cigarette","circle","circuit","circumstance","cite","citizen","city","civil","claim","class","classic","classical","classroom","clean","clear","clearly","clerk","clever","client","climate","climb","clinic","clock","close","closely","closer","closest","clothes","clothing","cloud","club","clue","coach","coal","coalition","coast","coat","code","coffee","cognitive","cold","collapse","colleague","collect","collection","college","colony","color","column","combination","combine","come","comedy","comfort","comfortable","command","commander","comment","commercial","commission","commit","commitment","committee","common","communicate","communication","community","company","compare","comparison","compete","competition","competitive","competitor","complain","complaint","complete","completely","complex","complexity","component","compose","composition","comprehensive","compromise","computer","concentrate","concentration","concept","concern","concerned","concert","conclude","conclusion","concrete","condition","conduct","conference","confidence","confident","confirm","conflict","confront","confusion","connect","connection","conscious","consequence","conservative","consider","considerable","consideration","consist","consistent","constant","constantly","constitute","constitutional","construct","construction","consult","consultant","consume","consumer","consumption","contact","contain","container","contemporary","content","contest","context","continue","continued","contract","contrast","contribute","contribution","control","controversial","convention","conventional","conversation","convert","convince","cook","cookie","cool","cooperation","cope","copy","core","corner","corporate","corporation","correct","correspond","cost","cotton","couch","could","council","counsel","count","counter","country","county","couple","courage","course","court","cousin","cover","coverage","cow","crack","craft","crash","crazy","cream","create","creation","creative","creature","credit","crew","crime","criminal","crisis","criteria","critic","critical","criticism","criticize","crop","cross","crowd","crucial","cry","cultural","culture","cup","curious","current","currently","curtain","custom","customer","cut","cycle","daily","damage","dance","danger","dangerous","dare","dark","darkness","data","database","date","daughter","day","dead","deal","dealer","dear","death","debate","debt","decade","decay","decide","decision","declare","decline","decorate","decrease","deep","deeply","deer","defeat","defend","defense","defensive","deficit","define","definitely","definition","degree","delay","deliver","delivery","demand","democracy","democratic","demonstrate","demonstration","denial","deny","department","departure","depend","dependent","depict","deposit","depressed","depression","depth","deputy","derive","describe","description","desert","deserve","design","designer","desire","desk","desperate","despite","destroy","destruction","detail","detailed","detect","determine","develop","development","device","devote","dialogue","diet","differ","difference","different","difficult","difficulty","dig","digital","dimension","dinner","direct","direction","directly","director","dirt","dirty","disability","disagree","disappear","disaster","discipline","discourse","discover","discovery","discuss","discussion","disease","dish","dismiss","disorder","display","dispute","distance","distant","distinct","distinction","distinguish","distribute","distribution","district","diverse","diversity","divide","division","divorce","doctor","document","dog","domestic","dominant","dominate","door","double","doubt","down","draft","drag","drama","dramatic","dramatically","draw","drawer","drawing","dream","dress","drink","drive","driver","drop","drug","dry","due","during","dust","duty","each","eager","ear","early","earn","earnings","earth","ease","easily","east","eastern","easy","eat","economic","economics","economist","economy","edge","edition","editor","educate","education","educational","educator","effect","effective","effectively","efficiency","efficient","effort","egg","eight","either","elderly","elect","election","electric","electricity","electronic","element","elementary","eliminate","elite","else","elsewhere","email","embrace","emerge","emergency","emission","emotion","emotional","emphasis","emphasize","empire","employ","employee","employer","employment","empty","enable","encounter","encourage","end","enemy","energy","enforcement","engage","engine","engineer","engineering","enhance","enjoy","enormous","enough","ensure","enter","enterprise","entertainment","entire","entirely","entrance","entry","environment","environmental","episode","equal","equally","equipment","era","error","escape","especially","essay","essential","essentially","establish","establishment","estate","estimate","ethics","ethnic","evaluate","evaluation","even","evening","event","eventually","ever","every","everybody","everyday","everyone","everything","everywhere","evidence","evolution","evolve","exact","exactly","examination","examine","example","exceed","excellent","except","exception","exchange","exciting","exclude","excuse","execute","execution","executive","exercise","exhibit","exhibition","exist","existence","existing","expand","expansion","expect","expectation","expense","expensive","experience","experiment","expert","explain","explanation","explode","explore","explosion","expose","exposure","express","expression","extend","extension","extensive","extent","external","extra","extraordinary","extreme","extremely","eye","fabric","face","facility","fact","factor","factory","faculty","fade","fail","failure","fair","fairly","faith","fall","false","familiar","family","famous","fan","fantasy","far","farm","farmer","fashion","fast","fat","fate","father","fault","favor","favorite","fear","feature","federal","fee","feed","feel","feeling","fellow","female","fence","few","fewer","fiber","fiction","field","fifteen","fifth","fifty","fight","fighter","fighting","figure","file","fill","film","final","finally","finance","financial","find","finding","fine","finger","finish","fire","firm","first","fish","fishing","fit","fitness","five","fix","flag","flame","flash","flat","flavor","flee","fleet","flesh","flight","float","flood","floor","flow","flower","fly","focus","folk","follow","following","food","foot","football","for","force","foreign","forest","forever","forget","form","formal","formation","former","formula","forth","fortune","forward","found","foundation","founder","four","fourth","frame","framework","free","freedom","freeze","frequency","frequent","frequently","fresh","friend","friendly","friendship","from","front","fruit","frustration","fuel","full","fully","fun","function","fund","fundamental","funding","funeral","funny","furniture","furthermore","future","gain","galaxy","gallery","game","gang","gap","garage","garden","garlic","gas","gate","gather","gaze","gear","gender","gene","general","generally","generate","generation","genetic","gentleman","gently","gesture","get","ghost","giant","gift","gifted","girl","girlfriend","give","given","glad","glance","glass","global","glove","go","goal","god","gold","golden","golf","good","government","governor","grab","grade","gradually","graduate","grain","grand","grandfather","grandmother","grant","graph","grass","grave","gray","great","greatest","green","grocery","ground","group","grow","growing","growth","guarantee","guard","guess","guest","guide","guideline","guilty","gun","guy","habit","habitat","hair","half","hall","hand","handful","handle","hang","happen","happy","hard","hardly","hat","hate","have","he","head","headline","headquarters","health","healthy","hear","hearing","heart","heat","heaven","heavily","heavy","heel","height","helicopter","hell","hello","help","helpful","her","here","heritage","hero","herself","hesitate","hide","high","highlight","highly","highway","hill","him","himself","hire","his","historian","historic","historical","history","hit","hold","hole","holiday","holy","home","homeless","honest","honey","honor","hope","horizon","horror","horse","hospital","host","hot","hotel","hour","house","household","housing","how","however","huge","human","humor","hundred","hungry","hunt","hunter","hunting","hurt","husband","hypothesis","ice","idea","ideal","identification","identify","identity","ie","if","ignore","ill","illegal","illness","illustrate","image","imagination","imagine","immediate","immediately","immigrant","immigration","impact","implement","implication","imply","importance","important","impose","impossible","impress","impression","impressive","improve","improvement","in","incentive","incident","include","including","income","incorporate","increase","increased","increasing","increasingly","incredible","indeed","independence","independent","index","indicate","indication","individual","industrial","industry","infant","infection","inflation","influence","inform","information","ingredient","initial","initially","initiative","injury","inner","innocent","inquiry","inside","insight","insist","inspire","install","instance","instead","institution","institutional","instruction","instructor","instrument","insurance","intellectual","intelligence","intend","intense","intensity","intention","interaction","interest","interested","interesting","internal","international","internet","interpret","interpretation","intervention","interview","into","introduce","introduction","invasion","invest","investigate","investigation","investigator","investment","investor","invite","involve","involved","involvement","iron","island","issue","it","item","its","itself","jacket","jail","jar","jaw","jazz","jet","jewel","job","join","joint","joke","journal","journalist","journey","joy","judge","judgment","juice","jump","junior","jurisdiction","jury","just","justice","justify","keep","key","kick","kid","kill","killer","killing","kind","king","kiss","kitchen","knee","knife","knock","know","knowledge","lab","label","labor","laboratory","lack","lady","lake","land","landscape","language","lap","large","largely","last","late","latter","laugh","launch","law","lawn","lawsuit","lawyer","lay","layer","lead","leader","leadership","leading","leaf","league","lean","learn","learning","least","leather","leave","lecture","left","leg","legacy","legal","legend","legislation","legitimate","lemon","length","less","lesson","let","letter","level","liability","liberal","library","license","lie","life","lifestyle","lifetime","lift","light","like","likely","limit","limitation","limited","line","link","lip","liquid","list","listen","literally","literary","literature","little","live","living","load","loan","local","locate","location","lock","log","logic","logical","lonely","long","look","loose","lose","loss","lost","lot","lots","loud","love","lovely","lover","low","lower","loyal","luck","lucky","lunch","lung","machine","magazine","mail","main","mainly","maintain","maintenance","major","majority","make","maker","makeup","male","mall","man","manage","management","manager","manner","manufacturer","manufacturing","many","map","margin","mark","market","marketing","marriage","married","marry","mask","mass","massive","master","match","material","math","matter","may","maybe","mayor","me","meal","mean","meaning","meanwhile","measure","measurement","meat","mechanism","media","medical","medication","medicine","medium","meet","meeting","member","membership","memory","mental","mention","menu","mere","merely","mess","message","metal","meter","method","middle","might","military","milk","million","mind","mine","minister","minor","minority","minute","miracle","mirror","miss","missile","mission","mistake","mix","mixture","mobile","mode","model","moderate","modern","modest","modify","molecule","moment","money","monitor","month","mood","moon","moral","more","moreover","morning","mortgage","most","mostly","mother","motion","motivation","motor","mount","mountain","mouse","mouth","move","movement","movie","much","multiple","murder","muscle","museum","music","musical","musician","must","mutual","my","myself","mystery","nail","name","narrative","narrow","nation","national","native","natural","naturally","nature","near","nearby","nearly","necessarily","necessary","neck","need","negative","negotiate","negotiation","neighbor","neighborhood","neither","nerve","nervous","net","network","never","nevertheless","new","newly","news","newspaper","next","nice","night","nine","no","nobody","nod","node","noise","nomination","none","nonetheless","nor","normal","normally","north","northern","nose","not","note","nothing","notice","notion","novel","now","nowhere","nuclear","number","numerous","nurse","nut","object","objective","obligation","observation","observe","observer","obtain","obvious","obviously","occasion","occasionally","occupation","occupy","occur","ocean","odd","odds","of","off","offense","offensive","offer","office","officer","official","often","oil","okay","old","olympic","on","once","one","ongoing","onion","online","only","onto","open","opening","operate","operating","operation","operator","opinion","opponent","opportunity","oppose","opposite","opposition","option","or","orange","order","ordinary","organic","organization","organize","orientation","origin","original","originally","other","others","otherwise","ought","our","ourselves","out","outcome","outside","oven","over","overall","overcome","overlook","owe","own","owner","pace","pack","package","page","pain","painful","paint","painter","painting","pair","pale","palm","pan","panel","pant","paper","parent","park","parking","part","participant","participate","participation","particular","particularly","partly","partner","partnership","party","pass","passage","passenger","passion","past","patch","path","patient","pattern","pause","pay","payment","peace","peak","peer","penalty","people","pepper","per","perceive","percentage","perception","perfect","perfectly","perform","performance","performer","perhaps","period","permanent","permission","permit","person","personal","personality","personally","personnel","perspective","persuade","pet","phase","phenomenon","philosophy","phone","photo","photograph","photographer","phrase","physical","physically","physician","piano","pick","picture","pie","piece","pile","pilot","pine","pink","pipe","pitch","place","plan","plane","planet","planner","planning","plant","plastic","plate","platform","play","player","pleasant","please","pleasure","plenty","plot","plus","pocket","poem","poet","poetry","point","pointer","pole","police","policy","political","politically","politician","politics","poll","pollution","pool","poor","pop","popular","population","porch","port","portion","portrait","portray","pose","position","positive","possess","possibility","possible","possibly","post","pot","potato","potential","potentially","pound","pour","poverty","powder","power","powerful","practical","practice","pray","prayer","precisely","predict","prefer","preference","pregnancy","pregnant","preparation","prepare","prescription","presence","present","presentation","preserve","president","presidential","press","pressure","pretend","pretty","prevent","previous","previously","price","pride","priest","primarily","primary","prime","principal","principle","print","prior","priority","prison","prisoner","privacy","private","probably","problem","procedure","proceed","process","produce","producer","product","production","profession","professional","professor","profile","profit","program","progress","project","prominent","promise","promote","prompt","proof","proper","properly","property","proportion","proposal","propose","proposed","prosecutor","prospect","protect","protection","protein","protest","proud","prove","provide","provider","province","provision","psychological","psychologist","psychology","public","publication","publicly","publish","publisher","pull","punishment","purchase","pure","purpose","pursue","push","put","qualify","quality","quarter","quarterback","queen","question","queue","quick","quickly","quiet","quietly","quit","quite","quote","race","racial","radical","radio","rail","rain","raise","range","rank","rapid","rapidly","rare","rarely","rate","rather","rating","ratio","raw","reach","react","reaction","read","reader","reading","ready","real","reality","realize","really","reason","reasonable","recall","receive","recent","recently","recipe","recognition","recognize","recommend","recommendation","record","recording","recover","recovery","recruit","recursion","red","reduce","reduction","refer","reference","reflect","reflection","reform","refugee","refuse","regard","regarding","regardless","regime","region","regional","register","regular","regularly","regulate","regulation","reinforce","reject","relate","relation","relationship","relative","relatively","relax","release","relevant","relief","religion","religious","rely","remain","remaining","remarkable","remember","remind","remote","remove","repeat","repeatedly","replace","reply","report","reporter","represent","representation","representative","reputation","request","require","requirement","research","researcher","resemble","reservation","resident","resist","resistance","resolution","resolve","resort","resource","respect","respond","respondent","response","responsibility","responsible","rest","restaurant","restore","restriction","result","retain","retire","retirement","return","reveal","revenue","review","revolution","rhythm","rice","rich","rid","ride","rifle","right","ring","rise","risk","river","road","rock","role","roll","romantic","roof","room","root","rope","rose","rough","roughly","round","route","routine","row","rub","rule","run","running","rural","rush","sacred","sad","safe","safety","sake","salad","salary","sale","sales","salt","same","sample","sanction","sand","satellite","satisfaction","satisfy","sauce","save","saving","say","scale","scan","scandal","scared","scenario","scene","schedule","scheme","scholar","scholarship","school","science","scientific","scientist","scope","score","scream","screen","script","sea","search","season","seat","second","secret","secretary","section","sector","secure","security","see","seed","seek","seem","segment","seize","select","selection","self","sell","seller","senate","senator","send","senior","sense","sensitive","sentence","separate","sequence","series","serious","seriously","serve","service","session","set","setting","settle","settlement","seven","several","severe","sex","sexual","shade","shadow","shake","shall","shape","share","sharp","she","sheet","shelf","shell","shelter","shift","shine","ship","shirt","shit","shock","shoe","shoot","shooting","shop","shopping","shore","short","shortly","shot","should","shoulder","shout","show","shower","shrug","shut","sick","side","sigh","sight","sign","signal","significance","significant","significantly","silence","silent","silver","similar","similarly","simple","simply","sin","since","sing","singer","single","sink","sir","sister","sit","site","situation","six","size","ski","skill","skin","sky","slave","sleep","slice","slide","slight","slightly","slip","slow","slowly","small","smart","smell","smile","smoke","smooth","snap","snow","so","soccer","social","society","soft","softly","soil","solar","soldier","solid","solution","solve","some","somebody","somehow","someone","something","sometimes","somewhat","somewhere","son","song","soon","sophisticated","sorry","sort","soul","sound","soup","source","south","southern","space","speak","speaker","special","specialist","species","specific","specifically","speech","speed","spend","spending","spin","spirit","spiritual","split","spokesman","sport","spot","spread","spring","square","squeeze","stability","stable","stack","staff","stage","stair","stake","stand","standard","standing","star","stare","start","state","statement","station","statistics","status","stay","steady","steal","steel","step","stick","still","stir","stock","stomach","stone","stop","storage","store","storm","story","straight","strange","stranger","strategic","strategy","stream","street","strength","strengthen","stress","stretch","strike","string","strip","stroke","strong","strongly","structure","struggle","student","studio","study","stuff","stupid","style","subject","submit","subsequent","substance","substantial","succeed","success","successful","successfully","such","sudden","suddenly","sue","suffer","sufficient","sugar","suggest","suggestion","suit","suitable","summer","summit","sun","super","supply","support","supporter","suppose","supposed","supreme","sure","surely","surface","surgery","surprise","surprised","surprising","surprisingly","surround","survey","survival","survive","survivor","suspect","sustain","swear","sweep","sweet","swim","swing","switch","symbol","symptom","syntax","system","table","tablespoon","tactic","tail","take","tale","talent","talk","tall","tank","tap","tape","target","task","taste","tax","taxpayer","tea","teach","teacher","teaching","team","tear","teaspoon","technical","technique","technology","teen","teenager","telephone","telescope","television","tell","temperature","temporary","ten","tend","tendency","tennis","tension","tent","term","terms","terrible","territory","terror","terrorism","terrorist","test","testify","testimony","testing","text","than","thank","thanks","that","the","theater","their","them","theme","themselves","then","theory","therapy","there","therefore","these","they","thick","thin","thing","think","thinking","third","thirty","this","those","though","thought","thousand","threat","threaten","three","throat","through","throughout","throw","thus","ticket","tie","tight","time","tiny","tip","tire","tired","tissue","title","to","tobacco","today","toe","together","tomato","tomorrow","tone","tongue","tonight","too","tool","tooth","top","topic","toss","total","totally","touch","tough","tour","tourist","tournament","toward","towards","tower","town","toy","trace","track","trade","tradition","traditional","traffic","tragedy","trail","train","trainer","training","transfer","transform","transformation","transition","translate","transportation","travel","treat","treatment","treaty","tree","tremendous","trend","trial","tribe","trick","trip","troop","trouble","truck","true","truly","trust","truth","try","tube","tunnel","turn","twelve","twenty","twice","twin","two","type","typical","typically","ugly","ultimate","ultimately","unable","uncle","under","undergo","understand","understanding","unfortunately","uniform","union","unique","unit","united","universal","universe","university","unknown","unless","unlike","unlikely","until","unusual","up","upon","upper","urban","urge","us","use","used","useful","user","usual","usually","utility","vacation","valley","valuable","value","variable","variation","variety","various","vary","vast","vegetable","vehicle","venture","version","versus","very","vessel","veteran","via","victim","victory","video","view","viewer","village","violate","violation","violence","violent","virtually","virtue","virus","visible","vision","visit","visitor","visual","vital","voice","volume","volunteer","vote","voter","vulnerable","wage","wait","wake","walk","wall","wander","want","war","warm","warn","warning","wash","waste","watch","water","wave","way","we","weak","wealth","wealthy","weapon","wear","weather","wedding","week","weekend","weekly","weigh","weight","welcome","welfare","well","west","western","wet","what","whatever","wheel","when","whenever","where","whereas","whether","which","while","whisper","white","who","whole","whom","whose","why","wide","widely","widespread","wife","wild","will","willing","win","wind","window","wine","wing","winner","winter","wipe","wire","wisdom","wise","wish","with","withdraw","within","without","witness","woman","wonder","wonderful","wood","wooden","word","work","worker","working","works","workshop","world","worried","worry","worth","would","wound","wrap","write","writer","writing","wrong","yard","yeah","year","yell","yellow","yes","yesterday","yet","yield","you","young","your","yours","yourself","youth","zero","zone","zoo"];
 
-    // Create the global BST instance
     const dictionaryBST = new BinarySearchTree();
 
-    // Initialize with balanced insertion to avoid degenerate linked-list tree
     function initDictionary() {
-      // Sort words and build balanced tree
-      const sorted = [...DEFAULT_DICTIONARY].sort();
-      dictionaryBST.buildBalanced(sorted);
+      if (typeof DEFAULT_DICTIONARY !== 'undefined' && Array.isArray(DEFAULT_DICTIONARY)) {
+        const sorted = [...new Set(DEFAULT_DICTIONARY)].sort();
+        dictionaryBST.buildBalanced(sorted);
+      }
       updateStatsUI();
       renderBSTGraph();
     }
@@ -778,7 +840,6 @@
        5. SPELL CHECKING LOGIC & HIGHLIGHTING
        ========================================================================== */
 
-    // Map to keep track of misspelled words and their suggestions
     let currentMisspelledMap = new Map();
 
     function performSpellCheck() {
@@ -790,11 +851,11 @@
       const diagnosticMsg = document.getElementById('diagnostic-message');
 
       if (!text.trim()) {
-        outputContainer.innerHTML = '<span class="text-slate-400 italic">Please enter text above to check spelling.</span>';
+        outputContainer.innerHTML = '<span class="text-slate-400 dark:text-slate-500 italic">Please enter text above to check spelling.</span>';
         suggestionsList.classList.add('hidden');
         suggestionsEmpty.classList.remove('hidden');
         badgeErrors.innerText = '0 Errors';
-        badgeErrors.className = 'text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-semibold';
+        badgeErrors.className = 'text-xs px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold font-mono';
         document.getElementById('stat-words-checked').innerText = '0';
         document.getElementById('stat-misspelled-count').innerText = '0';
         document.getElementById('stat-accuracy').innerText = 'Awaiting check';
@@ -803,17 +864,13 @@
       }
 
       currentMisspelledMap.clear();
-
-      // Split text into tokens preserving delimiters (whitespace, punctuation)
-      // Regex captures words and non-words
       const tokens = text.match(/([a-zA-Z]+|[^a-zA-Z]+)/g) || [];
 
       let totalWords = 0;
       let misspelledCount = 0;
       let htmlPieces = [];
 
-      tokens.forEach((token, index) => {
-        // If token is an alphabetic word
+      tokens.forEach((token) => {
         if (/^[a-zA-Z]+$/.test(token)) {
           totalWords++;
           const lower = token.toLowerCase();
@@ -838,37 +895,28 @@
             );
           }
         } else {
-          // Whitespace / punctuation preserved as is
           htmlPieces.push(escapeHtml(token));
         }
       });
 
-      // Update highlighted display
       outputContainer.innerHTML = htmlPieces.join('');
 
-      // Update stats
       document.getElementById('stat-words-checked').innerText = totalWords;
       document.getElementById('stat-misspelled-count').innerText = misspelledCount;
       const accuracy = totalWords > 0 ? Math.round(((totalWords - misspelledCount) / totalWords) * 100) : 100;
       document.getElementById('stat-accuracy').innerText = `${accuracy}% accuracy rate`;
 
-      // Update badge
       badgeErrors.innerText = `${misspelledCount} ${misspelledCount === 1 ? 'Error' : 'Errors'}`;
       if (misspelledCount > 0) {
-        badgeErrors.className = 'text-xs px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 font-semibold';
+        badgeErrors.className = 'text-xs px-2.5 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400 border border-rose-200/80 dark:border-rose-900/60 font-semibold font-mono';
       } else {
-        badgeErrors.className = 'text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-semibold';
+        badgeErrors.className = 'text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200/80 dark:border-emerald-900/60 font-semibold font-mono';
       }
 
-      // Render suggestions in side panel
       renderSuggestionsSidePanel();
-
       diagnosticMsg.innerText = `Checked ${totalWords} words across dictionary in O(log n) average time.`;
     }
 
-    /**
-     * Renders the misspelled words cards and suggestions in the right side panel
-     */
     function renderSuggestionsSidePanel() {
       const suggestionsList = document.getElementById('suggestions-list');
       const suggestionsEmpty = document.getElementById('suggestions-empty');
@@ -886,14 +934,14 @@
       currentMisspelledMap.forEach((data, wrongWord) => {
         const card = document.createElement('div');
         card.id = `suggestion-card-${wrongWord}`;
-        card.className = 'p-3.5 rounded-xl border border-rose-200 bg-rose-50/40 hover:bg-rose-50/80 transition shadow-xs';
+        card.className = 'p-3.5 rounded-xl border border-rose-200/80 dark:border-rose-900/50 bg-rose-50/40 dark:bg-rose-950/20 hover:bg-rose-50/80 dark:hover:bg-rose-950/30 transition shadow-xs';
 
         let suggestionsHtml = '';
         if (data.suggestions.length > 0) {
           suggestionsHtml = data.suggestions.map(sug => `
             <button
               onclick="replaceWord('${escapeHtml(wrongWord)}', '${escapeHtml(sug)}')"
-              class="inline-flex items-center text-xs px-2.5 py-1 rounded-lg bg-white hover:bg-indigo-600 hover:text-white text-indigo-700 border border-indigo-200/80 hover:border-indigo-600 font-medium transition shadow-xs group"
+              class="inline-flex items-center text-xs px-2.5 py-1 rounded-full bg-white dark:bg-slate-800 hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-600 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/80 hover:border-indigo-600 font-medium transition shadow-xs group"
               title="Click to replace '${escapeHtml(wrongWord)}' with '${escapeHtml(sug)}'"
             >
               ${escapeHtml(sug)}
@@ -901,26 +949,26 @@
             </button>
           `).join('');
         } else {
-          suggestionsHtml = '<span class="text-xs text-slate-400 italic">No close suggestions found</span>';
+          suggestionsHtml = '<span class="text-xs text-slate-400 dark:text-slate-500 italic">No close suggestions found</span>';
         }
 
         card.innerHTML = `
           <div class="flex items-center justify-between mb-2">
             <div class="flex items-center space-x-2">
-              <span class="text-xs font-bold text-rose-700 uppercase tracking-wide bg-rose-100 px-2 py-0.5 rounded font-mono">
+              <span class="text-xs font-bold text-rose-700 dark:text-rose-400 uppercase tracking-wide bg-rose-100 dark:bg-rose-900/40 px-2 py-0.5 rounded font-mono">
                 "${escapeHtml(wrongWord)}"
               </span>
               ${data.occurrences > 1 ? `<span class="text-[11px] text-slate-400 font-medium">(${data.occurrences}x)</span>` : ''}
             </div>
             <button
               onclick="quickAddWord('${escapeHtml(wrongWord)}')"
-              class="text-[11px] text-indigo-600 hover:text-indigo-800 font-medium hover:underline flex items-center"
+              class="text-[11px] text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-medium hover:underline flex items-center"
               title="Add this word to the dictionary BST"
             >
               + Add to Dict
             </button>
           </div>
-          <div class="text-[11px] text-slate-500 mb-1.5 font-medium">Suggestions (Levenshtein ≤ 2):</div>
+          <div class="text-[11px] text-slate-500 dark:text-slate-400 mb-1.5 font-medium">Suggestions (Levenshtein ≤ 2):</div>
           <div class="flex flex-wrap gap-1.5">
             ${suggestionsHtml}
           </div>
@@ -930,17 +978,12 @@
       });
     }
 
-    /**
-     * Replaces all instances of a misspelled word with the selected suggestion.
-     */
     function replaceWord(wrongWord, replacement) {
       const textarea = document.getElementById('input-text');
       const text = textarea.value;
 
-      // Case-insensitive word boundary replacement
       const regex = new RegExp(`\\b${wrongWord}\\b`, 'gi');
       const updatedText = text.replace(regex, (match) => {
-        // Preserve capitalization if first letter was uppercase
         if (match[0] === match[0].toUpperCase() && match.slice(1) === match.slice(1).toLowerCase()) {
           return replacement.charAt(0).toUpperCase() + replacement.slice(1);
         }
@@ -954,9 +997,6 @@
       showToast(`Replaced "${wrongWord}" with "${replacement}"`, 'success');
     }
 
-    /**
-     * Highlights and scrolls to the card in the suggestions panel
-     */
     function focusSuggestion(wrongWord) {
       const card = document.getElementById(`suggestion-card-${wrongWord}`);
       if (card) {
@@ -968,9 +1008,6 @@
       }
     }
 
-    /**
-     * Helper to add a misspelled word directly into the dictionary from the suggestions panel.
-     */
     function quickAddWord(word) {
       const added = dictionaryBST.insert(word);
       if (added) {
@@ -987,16 +1024,9 @@
        6. BST GRAPH VISUALIZER (SVG RENDERING)
        ========================================================================== */
 
-    /* ==========================================================================
-       6. BST GRAPH VISUALIZER (SVG RENDERING)
-       ========================================================================== */
-
     let visualizerMode = 'overview'; // 'overview' or 'trace'
     let currentTraceResult = null;
 
-    /**
-     * Draws the BST onto the SVG canvas with search path highlights or deep path view.
-     */
     function renderBSTGraph() {
       const svg = document.getElementById('bst-svg');
       const badge = document.getElementById('visualizer-status-badge');
@@ -1009,27 +1039,22 @@
         return;
       }
 
-      // Check if we are in Full Search Path (Deep) mode
       if (visualizerMode === 'trace') {
         renderDeepTraceView(svg, badge, hint);
         return;
       }
 
-      // Default: Top 4 Levels Overview mode
       renderOverviewView(svg, badge, hint);
     }
 
-    /**
-     * Renders the top 4 levels overview of the BST with glowing trace path
-     */
     function renderOverviewView(svg, badge, hint) {
       svg.setAttribute('viewBox', '0 0 800 300');
       svg.style.height = '300px';
 
       if (currentTraceResult && currentTraceResult.word) {
-        badge.innerHTML = `Overview • Tracing "<strong>${escapeHtml(currentTraceResult.word)}</strong>" (${currentTraceResult.comparisons} comparisons)`;
+        badge.innerHTML = `Overview • Traced: "<strong class="text-amber-400">${escapeHtml(currentTraceResult.word)}</strong>" (${currentTraceResult.comparisons} comparisons)`;
         if (currentTraceResult.comparisons > 4) {
-          hint.innerHTML = `<span class="text-amber-600 font-semibold">Note:</span> "${escapeHtml(currentTraceResult.word)}" is at Level ${currentTraceResult.comparisons}. Switch to <strong>"Full Search Path (Deep)"</strong> above to see all 11 steps!`;
+          hint.innerHTML = `<span class="text-amber-500 font-semibold">Note:</span> "${escapeHtml(currentTraceResult.word)}" is at Level ${currentTraceResult.comparisons}. Switch to <strong>"Full Search Path (Deep)"</strong> above to see all 11 steps!`;
         } else {
           hint.innerText = 'Nodes at level > 4 pruned for clean display';
         }
@@ -1042,7 +1067,6 @@
       const nodesToDraw = [];
       const linksToDraw = [];
 
-      // Map traced steps for fast lookup
       const traceMap = new Map();
       if (currentTraceResult && currentTraceResult.steps) {
         currentTraceResult.steps.forEach(s => {
@@ -1085,13 +1109,13 @@
         line.setAttribute('y2', link.y2);
 
         if (link.isPath) {
-          line.setAttribute('stroke', '#fbbf24'); // Glowing gold for traced path
+          line.setAttribute('stroke', '#fbbf24');
           line.setAttribute('stroke-width', '3');
           line.setAttribute('opacity', '1');
         } else {
-          line.setAttribute('stroke', link.type === 'left' ? '#3b82f6' : '#a855f7');
+          line.setAttribute('stroke', link.type === 'left' ? '#38bdf8' : '#c084fc');
           line.setAttribute('stroke-width', '1.75');
-          line.setAttribute('stroke-dasharray', '3,3');
+          line.setAttribute('stroke-dasharray', '4,3');
           line.setAttribute('opacity', '0.5');
         }
         svg.appendChild(line);
@@ -1105,36 +1129,35 @@
         const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         circle.setAttribute('cx', item.x);
         circle.setAttribute('cy', item.y);
-        circle.setAttribute('r', item.traceInfo ? '19' : '17');
+        circle.setAttribute('r', item.traceInfo ? '18' : '16');
 
         if (item.traceInfo) {
           if (item.traceInfo.dir === 'MATCH') {
-            circle.setAttribute('fill', '#10b981'); // Emerald found
-            circle.setAttribute('stroke', '#34d399');
+            circle.setAttribute('fill', '#10b981');
+            circle.setAttribute('stroke', '#6ee7b7');
           } else {
-            circle.setAttribute('fill', '#f59e0b'); // Amber path
-            circle.setAttribute('stroke', '#fde68a');
+            circle.setAttribute('fill', '#f59e0b');
+            circle.setAttribute('stroke', '#fef08a');
           }
           circle.setAttribute('stroke-width', '3');
         } else {
           if (item.level === 1) {
-            circle.setAttribute('fill', '#4f46e5');
-            circle.setAttribute('stroke', '#818cf8');
+            circle.setAttribute('fill', '#6366f1');
+            circle.setAttribute('stroke', '#a5b4fc');
           } else if (item.level === 2) {
             circle.setAttribute('fill', '#0284c7');
-            circle.setAttribute('stroke', '#38bdf8');
+            circle.setAttribute('stroke', '#7dd3fc');
           } else if (item.level === 3) {
             circle.setAttribute('fill', '#059669');
-            circle.setAttribute('stroke', '#34d399');
+            circle.setAttribute('stroke', '#6ee7b7');
           } else {
-            circle.setAttribute('fill', '#64748b');
+            circle.setAttribute('fill', '#475569');
             circle.setAttribute('stroke', '#94a3b8');
           }
           circle.setAttribute('stroke-width', '2');
         }
         g.appendChild(circle);
 
-        // Word text
         const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         text.setAttribute('x', item.x);
         text.setAttribute('y', item.y + 4);
@@ -1147,18 +1170,17 @@
         text.textContent = displayWord;
         g.appendChild(text);
 
-        // Step number badge if part of search path
         if (item.traceInfo) {
           const badgeG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
           const badgeCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-          badgeCircle.setAttribute('cx', item.x + 14);
+          badgeCircle.setAttribute('cx', item.x + 13);
           badgeCircle.setAttribute('cy', item.y - 12);
-          badgeCircle.setAttribute('r', '9');
+          badgeCircle.setAttribute('r', '8.5');
           badgeCircle.setAttribute('fill', '#ef4444');
           badgeG.appendChild(badgeCircle);
 
           const badgeText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-          badgeText.setAttribute('x', item.x + 14);
+          badgeText.setAttribute('x', item.x + 13);
           badgeText.setAttribute('y', item.y - 9);
           badgeText.setAttribute('text-anchor', 'middle');
           badgeText.setAttribute('fill', '#ffffff');
@@ -1170,16 +1192,13 @@
         }
 
         const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
-        title.textContent = `Word: "${item.word}" (Level ${item.level})${item.traceInfo ? ` - Search Step ${item.traceInfo.comp}` : ''}`;
+        title.textContent = `Word: "${item.word}" (Level ${item.level})${item.traceInfo ? ` - Step ${item.traceInfo.comp}` : ''}`;
         g.appendChild(title);
 
         svg.appendChild(g);
       });
     }
 
-    /**
-     * Renders the deep trace path from root down to any depth (e.g. 11 levels for "legion")
-     */
     function renderDeepTraceView(svg, badge, hint) {
       if (!currentTraceResult || !currentTraceResult.steps || currentTraceResult.steps.length === 0) {
         svg.setAttribute('viewBox', '0 0 800 200');
@@ -1202,26 +1221,21 @@
       svg.style.height = `${Math.min(420, totalHeight)}px`;
 
       badge.innerHTML = `Deep Path • "${escapeHtml(currentTraceResult.word)}" (${count} comparisons down to Level ${count})`;
-      hint.innerHTML = `<span class="text-emerald-600 font-semibold">Success:</span> Showing all ${count} BST comparisons from Root down to Level ${count} (O(log n) efficiency).`;
+      hint.innerHTML = `<span class="text-emerald-500 font-semibold">Success:</span> Showing all ${count} BST comparisons from Root down to Level ${count} (O(log n) efficiency).`;
 
-      // Draw vertical zig-zag descent showing tree decisions
       let prevX = 400;
       let prevY = 36;
 
       steps.forEach((step, idx) => {
         const currY = 36 + idx * stepHeight;
-        // Calculate lateral shift based on direction
         let currX = 400;
         if (idx > 0) {
           const prevStep = steps[idx - 1];
-          // shift left or right from previous step
           const shift = Math.max(30, 180 - idx * 12);
           currX = prevStep.dir === 'LEFT' ? prevX - shift : prevX + shift;
-          // Keep bounded within 80 to 720
           currX = Math.max(90, Math.min(710, currX));
         }
 
-        // Draw connecting branch from previous node
         if (idx > 0) {
           const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
           line.setAttribute('x1', prevX);
@@ -1232,7 +1246,6 @@
           line.setAttribute('stroke-width', '2.5');
           svg.appendChild(line);
 
-          // Decision label on line
           const midX = (prevX + currX) / 2;
           const midY = (prevY + currY) / 2 - 4;
           const decisionText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
@@ -1246,10 +1259,8 @@
           svg.appendChild(decisionText);
         }
 
-        // Node group
         const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
 
-        // Node circle
         const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         circle.setAttribute('cx', currX);
         circle.setAttribute('cy', currY);
@@ -1260,7 +1271,7 @@
           circle.setAttribute('stroke', '#6ee7b7');
           circle.setAttribute('stroke-width', '3');
         } else if (idx === 0) {
-          circle.setAttribute('fill', '#4f46e5');
+          circle.setAttribute('fill', '#6366f1');
           circle.setAttribute('stroke', '#a5b4fc');
           circle.setAttribute('stroke-width', '2.5');
         } else {
@@ -1270,7 +1281,6 @@
         }
         g.appendChild(circle);
 
-        // Word text
         const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         text.setAttribute('x', currX);
         text.setAttribute('y', currY + 4);
@@ -1282,7 +1292,6 @@
         text.textContent = displayWord;
         g.appendChild(text);
 
-        // Step badge
         const badgeG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         const badgeRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
         badgeRect.setAttribute('x', currX + 22);
@@ -1334,7 +1343,6 @@
         input.value = '';
         updateStatsUI();
 
-        // Also trace the newly added word so visualizer highlights it immediately!
         const result = dictionaryBST.searchWithPath(word);
         result.word = word;
         currentTraceResult = result;
@@ -1412,7 +1420,6 @@
         stepsContainer.appendChild(notFoundDiv);
       }
 
-      // Automatically switch to deep path view if depth > 4, or update overview with glow
       if (result.comparisons > 4) {
         setVisualizerMode('trace');
       } else {
@@ -1426,11 +1433,11 @@
       const btnTrace = document.getElementById('btn-view-trace');
 
       if (mode === 'overview') {
-        btnOverview.className = 'px-2.5 py-1 rounded-md bg-white text-slate-800 shadow-xs font-semibold transition';
-        btnTrace.className = 'px-2.5 py-1 rounded-md text-slate-600 hover:text-slate-900 transition';
+        btnOverview.className = 'px-3 py-1.5 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-xs font-semibold transition';
+        btnTrace.className = 'px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition';
       } else {
-        btnTrace.className = 'px-2.5 py-1 rounded-md bg-white text-slate-800 shadow-xs font-semibold transition';
-        btnOverview.className = 'px-2.5 py-1 rounded-md text-slate-600 hover:text-slate-900 transition';
+        btnTrace.className = 'px-3 py-1.5 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-xs font-semibold transition';
+        btnOverview.className = 'px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition';
       }
 
       renderBSTGraph();
@@ -1445,8 +1452,13 @@
     }
 
     /* ==========================================================================
-       8. UTILITY & EVENT LISTENERS
+       8. UTILITY, THEME TOGGLE & EVENT LISTENERS
        ========================================================================== */
+
+    function toggleTheme() {
+      const isDark = document.documentElement.classList.toggle('dark');
+      localStorage.setItem('bst_theme', isDark ? 'dark' : 'light');
+    }
 
     function escapeHtml(string) {
       const entityMap = {
@@ -1462,14 +1474,14 @@
     function showToast(message, type = 'info') {
       const toast = document.getElementById('op-notification');
       toast.innerText = message;
-      toast.classList.remove('hidden', 'bg-emerald-100', 'text-emerald-800', 'border-emerald-200', 'bg-rose-100', 'text-rose-800', 'border-rose-200', 'bg-indigo-100', 'text-indigo-800', 'border-indigo-200');
+      toast.classList.remove('hidden', 'bg-emerald-100', 'text-emerald-800', 'dark:bg-emerald-950/60', 'dark:text-emerald-300', 'border-emerald-200', 'dark:border-emerald-800', 'bg-rose-100', 'text-rose-800', 'dark:bg-rose-950/60', 'dark:text-rose-300', 'border-rose-200', 'dark:border-rose-800', 'bg-indigo-100', 'text-indigo-800', 'dark:bg-indigo-950/60', 'dark:text-indigo-300', 'border-indigo-200', 'dark:border-indigo-800');
 
       if (type === 'success') {
-        toast.classList.add('bg-emerald-100', 'text-emerald-800', 'border', 'border-emerald-200');
+        toast.classList.add('bg-emerald-100', 'text-emerald-800', 'dark:bg-emerald-950/60', 'dark:text-emerald-300', 'border', 'border-emerald-200', 'dark:border-emerald-800');
       } else if (type === 'error') {
-        toast.classList.add('bg-rose-100', 'text-rose-800', 'border', 'border-rose-200');
+        toast.classList.add('bg-rose-100', 'text-rose-800', 'dark:bg-rose-950/60', 'dark:text-rose-300', 'border', 'border-rose-200', 'dark:border-rose-800');
       } else {
-        toast.classList.add('bg-indigo-100', 'text-indigo-800', 'border', 'border-indigo-200');
+        toast.classList.add('bg-indigo-100', 'text-indigo-800', 'dark:bg-indigo-950/60', 'dark:text-indigo-300', 'border', 'border-indigo-200', 'dark:border-indigo-800');
       }
 
       clearTimeout(window.toastTimer);
@@ -1487,12 +1499,14 @@
 
     // Attach Event Listeners
     window.addEventListener('DOMContentLoaded', () => {
-      // 1. Initialize BST with dictionary
       initDictionary();
+
+      // Theme toggle button
+      document.getElementById('btn-theme-toggle').addEventListener('click', toggleTheme);
 
       const textarea = document.getElementById('input-text');
 
-      // 2. Sample text buttons
+      // Sample text buttons
       document.getElementById('btn-sample-1').addEventListener('click', () => {
         textarea.value = "Computers and programing are powerfull tools for sciens and technolagy. A binary serch tree orginizes data efficently so words can be verifyed without unnecessary delays.";
         updateWordAndCharCount();
@@ -1511,17 +1525,17 @@
         performSpellCheck();
       });
 
-      // 3. Text input typing
+      // Typing in textarea
       textarea.addEventListener('input', () => {
         updateWordAndCharCount();
       });
 
-      // 4. Check spelling button
+      // Spell check button
       document.getElementById('btn-check-spelling').addEventListener('click', () => {
         performSpellCheck();
       });
 
-      // 5. BST Operations
+      // BST Operations
       document.getElementById('btn-add-word').addEventListener('click', handleAddWord);
       document.getElementById('input-add-word').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') handleAddWord();
@@ -1547,7 +1561,7 @@
         setVisualizerMode('trace');
       });
 
-      // 6. Pre-fill with sample 1 on initial load for demonstration
+      // Pre-fill with sample 1 on initial load
       document.getElementById('btn-sample-1').click();
     });
   </script>
