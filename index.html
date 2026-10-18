@@ -269,34 +269,43 @@
             <div>
               <h2 class="font-semibold text-slate-800 text-sm flex items-center gap-2">
                 <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11"></path></svg>
-                BST Architecture Visualizer (First 4 Levels)
+                BST Architecture & Path Visualizer
               </h2>
-              <p class="text-xs text-slate-500 mt-0.5">Inspect root, subtrees, and binary search ordering (<span class="font-mono text-indigo-600">Left &lt; Root &lt; Right</span>)</p>
+              <p class="text-xs text-slate-500 mt-0.5">Live visualizer with search path tracing and depth inspection</p>
             </div>
             <div class="flex items-center space-x-2">
+              <!-- View mode toggle -->
+              <div class="inline-flex rounded-lg bg-slate-200/70 p-0.5 text-xs font-medium">
+                <button id="btn-view-overview" class="px-2.5 py-1 rounded-md bg-white text-slate-800 shadow-xs font-semibold transition">
+                  Top 4 Levels
+                </button>
+                <button id="btn-view-trace" class="px-2.5 py-1 rounded-md text-slate-600 hover:text-slate-900 transition">
+                  Full Search Path (Deep)
+                </button>
+              </div>
               <button id="btn-rebalance" class="text-xs px-3 py-1.5 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 transition font-medium flex items-center">
                 <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                Rebalance Tree (AVL Style)
+                Rebalance Tree
               </button>
             </div>
           </div>
 
           <div class="p-4 bg-slate-900 overflow-x-auto relative">
-            <div class="absolute top-3 left-4 text-[11px] font-mono text-slate-400 bg-slate-800/80 px-2 py-1 rounded border border-slate-700">
-              Interactive Canvas • Top Levels
+            <div class="absolute top-3 left-4 text-[11px] font-mono text-slate-400 bg-slate-800/80 px-2 py-1 rounded border border-slate-700 flex items-center gap-2 z-10">
+              <span id="visualizer-status-badge">Canvas • Top 4 Levels</span>
             </div>
-            <svg id="bst-svg" class="w-full min-w-[620px] h-[260px]" viewBox="0 0 800 280" preserveAspectRatio="xMidYMid meet">
+            <svg id="bst-svg" class="w-full min-w-[620px] h-[300px]" viewBox="0 0 800 300" preserveAspectRatio="xMidYMid meet">
               <!-- Rendered via JS -->
             </svg>
           </div>
 
           <div class="px-5 py-3 bg-slate-50 border-t border-slate-100 flex flex-wrap items-center justify-between text-xs text-slate-600 gap-2">
             <div class="flex items-center space-x-4">
-              <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-indigo-500 mr-1.5"></span> Root / Node</span>
-              <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 mr-1.5"></span> Left Child (&lt;)</span>
-              <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-purple-500 mr-1.5"></span> Right Child (&gt;)</span>
+              <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-indigo-500 mr-1.5"></span> Normal Node</span>
+              <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-amber-400 mr-1.5"></span> Traced Path Node</span>
+              <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-emerald-400 mr-1.5"></span> Target Found</span>
             </div>
-            <span class="text-slate-400 italic">Nodes at level &gt; 4 pruned for clean display</span>
+            <span id="visualizer-hint" class="text-slate-400 italic">Nodes at level &gt; 4 shown in "Full Search Path" mode</span>
           </div>
         </div>
 
@@ -978,11 +987,20 @@
        6. BST GRAPH VISUALIZER (SVG RENDERING)
        ========================================================================== */
 
+    /* ==========================================================================
+       6. BST GRAPH VISUALIZER (SVG RENDERING)
+       ========================================================================== */
+
+    let visualizerMode = 'overview'; // 'overview' or 'trace'
+    let currentTraceResult = null;
+
     /**
-     * Draws the top 4 levels of the current BST onto the SVG canvas.
+     * Draws the BST onto the SVG canvas with search path highlights or deep path view.
      */
     function renderBSTGraph() {
       const svg = document.getElementById('bst-svg');
+      const badge = document.getElementById('visualizer-status-badge');
+      const hint = document.getElementById('visualizer-hint');
       if (!svg) return;
       svg.innerHTML = '';
 
@@ -991,78 +1009,132 @@
         return;
       }
 
-      const maxLevel = 4; // Display up to 4 levels
+      // Check if we are in Full Search Path (Deep) mode
+      if (visualizerMode === 'trace') {
+        renderDeepTraceView(svg, badge, hint);
+        return;
+      }
+
+      // Default: Top 4 Levels Overview mode
+      renderOverviewView(svg, badge, hint);
+    }
+
+    /**
+     * Renders the top 4 levels overview of the BST with glowing trace path
+     */
+    function renderOverviewView(svg, badge, hint) {
+      svg.setAttribute('viewBox', '0 0 800 300');
+      svg.style.height = '300px';
+
+      if (currentTraceResult && currentTraceResult.word) {
+        badge.innerHTML = `Overview • Tracing "<strong>${escapeHtml(currentTraceResult.word)}</strong>" (${currentTraceResult.comparisons} comparisons)`;
+        if (currentTraceResult.comparisons > 4) {
+          hint.innerHTML = `<span class="text-amber-600 font-semibold">Note:</span> "${escapeHtml(currentTraceResult.word)}" is at Level ${currentTraceResult.comparisons}. Switch to <strong>"Full Search Path (Deep)"</strong> above to see all 11 steps!`;
+        } else {
+          hint.innerText = 'Nodes at level > 4 pruned for clean display';
+        }
+      } else {
+        badge.innerText = 'Canvas • Top 4 Levels';
+        hint.innerText = 'Nodes at level > 4 pruned for clean display';
+      }
+
+      const maxLevel = 4;
       const nodesToDraw = [];
       const linksToDraw = [];
 
-      // Recursive helper to assign coordinate positions
+      // Map traced steps for fast lookup
+      const traceMap = new Map();
+      if (currentTraceResult && currentTraceResult.steps) {
+        currentTraceResult.steps.forEach(s => {
+          traceMap.set(s.node, s);
+        });
+      }
+
       function traverseForLayout(node, level, x, y, xOffset) {
         if (!node || level > maxLevel) return;
 
-        nodesToDraw.push({ word: node.word, x, y, level });
+        const traceInfo = traceMap.get(node.word);
+        nodesToDraw.push({ word: node.word, x, y, level, traceInfo });
 
         const nextY = y + 54;
         const nextXOffset = xOffset / 2;
 
         if (node.left && level < maxLevel) {
           const childX = x - xOffset;
-          linksToDraw.push({ x1: x, y1: y, x2: childX, y2: nextY, type: 'left' });
+          const isPathLink = traceInfo && traceInfo.dir === 'LEFT';
+          linksToDraw.push({ x1: x, y1: y, x2: childX, y2: nextY, type: 'left', isPath: isPathLink });
           traverseForLayout(node.left, level + 1, childX, nextY, nextXOffset);
         }
 
         if (node.right && level < maxLevel) {
           const childX = x + xOffset;
-          linksToDraw.push({ x1: x, y1: y, x2: childX, y2: nextY, type: 'right' });
+          const isPathLink = traceInfo && traceInfo.dir === 'RIGHT';
+          linksToDraw.push({ x1: x, y1: y, x2: childX, y2: nextY, type: 'right', isPath: isPathLink });
           traverseForLayout(node.right, level + 1, childX, nextY, nextXOffset);
         }
       }
 
-      // Root starts at top center (x=400, y=32)
       traverseForLayout(dictionaryBST.root, 1, 400, 32, 190);
 
-      // 1. Draw SVG Connecting Lines
+      // Draw SVG Connecting Lines
       linksToDraw.forEach(link => {
         const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         line.setAttribute('x1', link.x1);
         line.setAttribute('y1', link.y1);
         line.setAttribute('x2', link.x2);
         line.setAttribute('y2', link.y2);
-        line.setAttribute('stroke', link.type === 'left' ? '#3b82f6' : '#a855f7');
-        line.setAttribute('stroke-width', '1.75');
-        line.setAttribute('stroke-dasharray', '3,3');
-        line.setAttribute('opacity', '0.6');
+
+        if (link.isPath) {
+          line.setAttribute('stroke', '#fbbf24'); // Glowing gold for traced path
+          line.setAttribute('stroke-width', '3');
+          line.setAttribute('opacity', '1');
+        } else {
+          line.setAttribute('stroke', link.type === 'left' ? '#3b82f6' : '#a855f7');
+          line.setAttribute('stroke-width', '1.75');
+          line.setAttribute('stroke-dasharray', '3,3');
+          line.setAttribute('opacity', '0.5');
+        }
         svg.appendChild(line);
       });
 
-      // 2. Draw Nodes (Circle + Text)
+      // Draw Nodes
       nodesToDraw.forEach(item => {
         const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         g.setAttribute('class', 'tree-node cursor-pointer');
 
-        // Node Circle
         const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         circle.setAttribute('cx', item.x);
         circle.setAttribute('cy', item.y);
-        circle.setAttribute('r', '17');
+        circle.setAttribute('r', item.traceInfo ? '19' : '17');
 
-        // Color coding by level
-        if (item.level === 1) {
-          circle.setAttribute('fill', '#4f46e5'); // Root: indigo
-          circle.setAttribute('stroke', '#818cf8');
-        } else if (item.level === 2) {
-          circle.setAttribute('fill', '#0284c7'); // Level 2: sky
-          circle.setAttribute('stroke', '#38bdf8');
-        } else if (item.level === 3) {
-          circle.setAttribute('fill', '#059669'); // Level 3: emerald
-          circle.setAttribute('stroke', '#34d399');
+        if (item.traceInfo) {
+          if (item.traceInfo.dir === 'MATCH') {
+            circle.setAttribute('fill', '#10b981'); // Emerald found
+            circle.setAttribute('stroke', '#34d399');
+          } else {
+            circle.setAttribute('fill', '#f59e0b'); // Amber path
+            circle.setAttribute('stroke', '#fde68a');
+          }
+          circle.setAttribute('stroke-width', '3');
         } else {
-          circle.setAttribute('fill', '#d97706'); // Level 4: amber
-          circle.setAttribute('stroke', '#fbbf24');
+          if (item.level === 1) {
+            circle.setAttribute('fill', '#4f46e5');
+            circle.setAttribute('stroke', '#818cf8');
+          } else if (item.level === 2) {
+            circle.setAttribute('fill', '#0284c7');
+            circle.setAttribute('stroke', '#38bdf8');
+          } else if (item.level === 3) {
+            circle.setAttribute('fill', '#059669');
+            circle.setAttribute('stroke', '#34d399');
+          } else {
+            circle.setAttribute('fill', '#64748b');
+            circle.setAttribute('stroke', '#94a3b8');
+          }
+          circle.setAttribute('stroke-width', '2');
         }
-        circle.setAttribute('stroke-width', '2');
         g.appendChild(circle);
 
-        // Node Text
+        // Word text
         const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         text.setAttribute('x', item.x);
         text.setAttribute('y', item.y + 4);
@@ -1071,17 +1143,172 @@
         text.setAttribute('font-size', '10');
         text.setAttribute('font-weight', '600');
 
-        // Truncate long words for visual cleanliness
         const displayWord = item.word.length > 5 ? item.word.substring(0, 4) + '..' : item.word;
         text.textContent = displayWord;
         g.appendChild(text);
 
-        // Title tooltip for full word
+        // Step number badge if part of search path
+        if (item.traceInfo) {
+          const badgeG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+          const badgeCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          badgeCircle.setAttribute('cx', item.x + 14);
+          badgeCircle.setAttribute('cy', item.y - 12);
+          badgeCircle.setAttribute('r', '9');
+          badgeCircle.setAttribute('fill', '#ef4444');
+          badgeG.appendChild(badgeCircle);
+
+          const badgeText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          badgeText.setAttribute('x', item.x + 14);
+          badgeText.setAttribute('y', item.y - 9);
+          badgeText.setAttribute('text-anchor', 'middle');
+          badgeText.setAttribute('fill', '#ffffff');
+          badgeText.setAttribute('font-size', '8');
+          badgeText.setAttribute('font-weight', 'bold');
+          badgeText.textContent = item.traceInfo.comp;
+          badgeG.appendChild(badgeText);
+          g.appendChild(badgeG);
+        }
+
         const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
-        title.textContent = `Word: "${item.word}" (Level ${item.level})`;
+        title.textContent = `Word: "${item.word}" (Level ${item.level})${item.traceInfo ? ` - Search Step ${item.traceInfo.comp}` : ''}`;
         g.appendChild(title);
 
         svg.appendChild(g);
+      });
+    }
+
+    /**
+     * Renders the deep trace path from root down to any depth (e.g. 11 levels for "legion")
+     */
+    function renderDeepTraceView(svg, badge, hint) {
+      if (!currentTraceResult || !currentTraceResult.steps || currentTraceResult.steps.length === 0) {
+        svg.setAttribute('viewBox', '0 0 800 200');
+        svg.style.height = '200px';
+        svg.innerHTML = `
+          <text x="400" y="90" fill="#94a3b8" text-anchor="middle" font-size="14">No search trace active</text>
+          <text x="400" y="115" fill="#64748b" text-anchor="middle" font-size="12">Type a word in "Trace BST Search Path" below and click Trace to view its full path here.</text>
+        `;
+        badge.innerText = 'Deep Path View (Idle)';
+        hint.innerText = 'Search a word to inspect its complete comparison descent';
+        return;
+      }
+
+      const steps = currentTraceResult.steps;
+      const count = steps.length;
+      const stepHeight = 56;
+      const totalHeight = Math.max(300, (count + 1) * stepHeight);
+
+      svg.setAttribute('viewBox', `0 0 800 ${totalHeight}`);
+      svg.style.height = `${Math.min(420, totalHeight)}px`;
+
+      badge.innerHTML = `Deep Path • "${escapeHtml(currentTraceResult.word)}" (${count} comparisons down to Level ${count})`;
+      hint.innerHTML = `<span class="text-emerald-600 font-semibold">Success:</span> Showing all ${count} BST comparisons from Root down to Level ${count} (O(log n) efficiency).`;
+
+      // Draw vertical zig-zag descent showing tree decisions
+      let prevX = 400;
+      let prevY = 36;
+
+      steps.forEach((step, idx) => {
+        const currY = 36 + idx * stepHeight;
+        // Calculate lateral shift based on direction
+        let currX = 400;
+        if (idx > 0) {
+          const prevStep = steps[idx - 1];
+          // shift left or right from previous step
+          const shift = Math.max(30, 180 - idx * 12);
+          currX = prevStep.dir === 'LEFT' ? prevX - shift : prevX + shift;
+          // Keep bounded within 80 to 720
+          currX = Math.max(90, Math.min(710, currX));
+        }
+
+        // Draw connecting branch from previous node
+        if (idx > 0) {
+          const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          line.setAttribute('x1', prevX);
+          line.setAttribute('y1', prevY);
+          line.setAttribute('x2', currX);
+          line.setAttribute('y2', currY);
+          line.setAttribute('stroke', steps[idx - 1].dir === 'LEFT' ? '#38bdf8' : '#c084fc');
+          line.setAttribute('stroke-width', '2.5');
+          svg.appendChild(line);
+
+          // Decision label on line
+          const midX = (prevX + currX) / 2;
+          const midY = (prevY + currY) / 2 - 4;
+          const decisionText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          decisionText.setAttribute('x', midX);
+          decisionText.setAttribute('y', midY);
+          decisionText.setAttribute('text-anchor', 'middle');
+          decisionText.setAttribute('fill', steps[idx - 1].dir === 'LEFT' ? '#7dd3fc' : '#e9d5ff');
+          decisionText.setAttribute('font-size', '10');
+          decisionText.setAttribute('font-weight', 'bold');
+          decisionText.textContent = steps[idx - 1].dir === 'LEFT' ? '← LEFT (<)' : 'RIGHT (>) →';
+          svg.appendChild(decisionText);
+        }
+
+        // Node group
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+
+        // Node circle
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', currX);
+        circle.setAttribute('cy', currY);
+        circle.setAttribute('r', step.dir === 'MATCH' ? '20' : '17');
+
+        if (step.dir === 'MATCH') {
+          circle.setAttribute('fill', '#10b981');
+          circle.setAttribute('stroke', '#6ee7b7');
+          circle.setAttribute('stroke-width', '3');
+        } else if (idx === 0) {
+          circle.setAttribute('fill', '#4f46e5');
+          circle.setAttribute('stroke', '#a5b4fc');
+          circle.setAttribute('stroke-width', '2.5');
+        } else {
+          circle.setAttribute('fill', '#f59e0b');
+          circle.setAttribute('stroke', '#fde68a');
+          circle.setAttribute('stroke-width', '2');
+        }
+        g.appendChild(circle);
+
+        // Word text
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', currX);
+        text.setAttribute('y', currY + 4);
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('fill', '#ffffff');
+        text.setAttribute('font-size', '10');
+        text.setAttribute('font-weight', '600');
+        const displayWord = step.node.length > 7 ? step.node.substring(0, 6) + '..' : step.node;
+        text.textContent = displayWord;
+        g.appendChild(text);
+
+        // Step badge
+        const badgeG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        const badgeRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        badgeRect.setAttribute('x', currX + 22);
+        badgeRect.setAttribute('y', currY - 10);
+        badgeRect.setAttribute('width', '52');
+        badgeRect.setAttribute('height', '18');
+        badgeRect.setAttribute('rx', '4');
+        badgeRect.setAttribute('fill', '#1e293b');
+        badgeRect.setAttribute('stroke', '#475569');
+        badgeG.appendChild(badgeRect);
+
+        const badgeText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        badgeText.setAttribute('x', currX + 48);
+        badgeText.setAttribute('y', currY + 3);
+        badgeText.setAttribute('text-anchor', 'middle');
+        badgeText.setAttribute('fill', '#cbd5e1');
+        badgeText.setAttribute('font-size', '9');
+        badgeText.setAttribute('font-family', 'monospace');
+        badgeText.textContent = `Lvl ${step.comp}`;
+        badgeG.appendChild(badgeText);
+        g.appendChild(badgeG);
+
+        svg.appendChild(g);
+
+        prevX = currX;
+        prevY = currY;
       });
     }
 
@@ -1106,9 +1333,15 @@
       if (inserted) {
         input.value = '';
         updateStatsUI();
+
+        // Also trace the newly added word so visualizer highlights it immediately!
+        const result = dictionaryBST.searchWithPath(word);
+        result.word = word;
+        currentTraceResult = result;
+
         renderBSTGraph();
         performSpellCheck();
-        showToast(`Successfully inserted "${word}" into BST!`, 'success');
+        showToast(`Successfully inserted "${word}" into BST at Level ${result.comparisons}!`, 'success');
       } else {
         showToast(`"${word}" already exists in the BST dictionary.`, 'info');
       }
@@ -1126,6 +1359,9 @@
       const deleted = dictionaryBST.delete(word);
       if (deleted) {
         input.value = '';
+        if (currentTraceResult && currentTraceResult.word === word) {
+          currentTraceResult = null;
+        }
         updateStatsUI();
         renderBSTGraph();
         performSpellCheck();
@@ -1148,6 +1384,9 @@
       }
 
       const result = dictionaryBST.searchWithPath(word);
+      result.word = word;
+      currentTraceResult = result;
+
       traceBox.classList.remove('hidden');
       stepsContainer.innerHTML = '';
 
@@ -1157,7 +1396,7 @@
         const div = document.createElement('div');
         if (step.dir === 'MATCH') {
           div.className = 'text-emerald-400 font-bold';
-          div.innerHTML = `✓ Step ${step.comp}: "${step.node}" == "${word}" (FOUND!)`;
+          div.innerHTML = `✓ Step ${step.comp}: "${step.node}" == "${word}" (FOUND at Level ${step.comp}!)`;
         } else if (step.dir === 'LEFT') {
           div.innerHTML = `↳ Step ${step.comp}: "${word}" &lt; "${step.node}" &rarr; go LEFT`;
         } else {
@@ -1172,6 +1411,29 @@
         notFoundDiv.innerHTML = `✗ Reached null leaf node &mdash; "${word}" is NOT in dictionary.`;
         stepsContainer.appendChild(notFoundDiv);
       }
+
+      // Automatically switch to deep path view if depth > 4, or update overview with glow
+      if (result.comparisons > 4) {
+        setVisualizerMode('trace');
+      } else {
+        renderBSTGraph();
+      }
+    }
+
+    function setVisualizerMode(mode) {
+      visualizerMode = mode;
+      const btnOverview = document.getElementById('btn-view-overview');
+      const btnTrace = document.getElementById('btn-view-trace');
+
+      if (mode === 'overview') {
+        btnOverview.className = 'px-2.5 py-1 rounded-md bg-white text-slate-800 shadow-xs font-semibold transition';
+        btnTrace.className = 'px-2.5 py-1 rounded-md text-slate-600 hover:text-slate-900 transition';
+      } else {
+        btnTrace.className = 'px-2.5 py-1 rounded-md bg-white text-slate-800 shadow-xs font-semibold transition';
+        btnOverview.className = 'px-2.5 py-1 rounded-md text-slate-600 hover:text-slate-900 transition';
+      }
+
+      renderBSTGraph();
     }
 
     function handleRebalance() {
@@ -1276,6 +1538,14 @@
       });
 
       document.getElementById('btn-rebalance').addEventListener('click', handleRebalance);
+
+      document.getElementById('btn-view-overview').addEventListener('click', () => {
+        setVisualizerMode('overview');
+      });
+
+      document.getElementById('btn-view-trace').addEventListener('click', () => {
+        setVisualizerMode('trace');
+      });
 
       // 6. Pre-fill with sample 1 on initial load for demonstration
       document.getElementById('btn-sample-1').click();
